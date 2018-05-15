@@ -22,6 +22,8 @@
 #include"idsort.c"          /* for sorting IDs in the right order       */
                             /* -> after ID1 is ID2 in the next line     */
                             /*    and so on                             */
+#include"windows.c"         /* converts windows CRLF into unix LF       */
+
 
 struct stat sb;
 int calc_diff(int row_a,FILE *fp,int opt);
@@ -267,6 +269,10 @@ int main(int argc,const char** argv){
     printf("   -h    zeigt diese Hilfe an\n\n");
     return 0;
   }
+  if (opt & 2){                                        //converting windows LF into unix LF
+    rmwinCRLF(argc,argv,filesum);
+  }
+
   for(int i=1;i<=filesum;i++){
     if(argv[i][0]=='-') continue;                       //skipping options
     if (stat(argv[i], &sb) == 0 && S_ISDIR(sb.st_mode)){
@@ -278,6 +284,6 @@ int main(int argc,const char** argv){
   }
   if (opt & 8 ) printf("Cleaning up tmp0.csv\n");
   remove("tmp0.csv");
-  return 0;
+  return opt;
 }
 

@@ -16,6 +16,7 @@ int options(int argc,const char** argv){
       for(int j=1;j<len_argv;j++){
         if(argv[i][j]=='v') opt=opt | 8; //0000 1000
         else if(argv[i][j]=='h') opt=opt | 4; //0000 0100
+        else if(argv[i][j]=='n') opt=opt | 2; //0000 0010
         else {
           printf("Invalid Option: %s\n",argv[i]);
           exit(-1);
