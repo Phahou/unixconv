@@ -284,6 +284,6 @@ int main(int argc,const char** argv){
   }
   if (opt & 8 ) printf("Cleaning up tmp0.csv\n");
   remove("tmp0.csv");
-  return opt;
+  return 0;
 }
 
