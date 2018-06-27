@@ -23,14 +23,16 @@
 #include"idsort.c"    /* for sorting IDs in the right order       */
                       /* -> after ID1 is ID2 in the next line     */
                       /*    and so on                             */
+#include"windows.c"   /* converts windows CRLF into unix LF       */
+
 
 struct stat sb; //for checking if input is a dir
-
 void printhelp();
 void printfirstline(ln* lpr);
 int fileinit(ln* lpr, int opt);
 int isequalcheck(ln* lpr, fpos_t *pos);
 void reachedEOF(ln* lpr, int status, int opt);
+
 
 int idhasntchanged(char* id){
   return strncmp(id,"====",4);
@@ -133,6 +135,10 @@ int main(int argc,const char** argv){
     printhelp();
     return 0;
   }
+  if (opt & 2){                                        //converting windows CRLF into unix LF
+    rmwinCRLF(argc,argv,filesum);
+  }
+
   for(int i=1;i<=filesum;i++){
     if(argv[i][0]=='-') continue;                       //skipping options
 
