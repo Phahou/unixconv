@@ -269,7 +269,7 @@ int main(int argc,const char** argv){
     printf("   -h    zeigt diese Hilfe an\n\n");
     return 0;
   }
-  if (opt & 2){                                        //converting windows LF into unix LF
+  if (opt & 2){                                        //converting windows CRLF into unix LF
     rmwinCRLF(argc,argv,filesum);
   }
 
