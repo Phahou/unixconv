@@ -23,4 +23,3 @@
 #define CID5 "\"PLATZHALTER\""
 #define CID6 "\"PLATZHALTER\""
 #define CID7 "\"PLATZHALTER\""
-

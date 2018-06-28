@@ -87,38 +87,38 @@ void printid(ec *self, bool printtoterm){
     }
   } else {
     //Device IDs from the options.c with custom names (CID)
-  if(strcmp(self->id,ID0)==0) {
-    strcpy(self->CustomID,CID0);
-    printf("%s",CID0);
-  }
-  if(strcmp(self->id,ID1)==0) {
-    strcpy(self->CustomID,CID0);
-    printf("%s",CID0);
-  }
-  if(strcmp(self->id,ID2)==0) {
-    strcpy(self->CustomID,CID0);
-    printf("%s",CID0);
-  }
-  if(strcmp(self->id,ID3)==0) {
-    strcpy(self->CustomID,CID0);
-    printf("%s",CID0);
-  }
-  if(strcmp(self->id,ID4)==0) {
-    strcpy(self->CustomID,CID0);
-    printf("%s",CID0);
-  }
-  if(strcmp(self->id,ID5)==0) {
-    strcpy(self->CustomID,CID0);
-    printf("%s",CID0);
-  }
-  if(strcmp(self->id,ID6)==0) {
-    strcpy(self->CustomID,CID0);
-    printf("%s",CID0);
-  }
-  if(strcmp(self->id,ID7)==0) {
-    strcpy(self->CustomID,CID0);
-    printf("%s",CID0);
-  }
+	if(strcmp(self->id,ID0)==0) {
+	  strcpy(self->CustomID,CID0);
+	  printf("%s",CID0);
+	}
+	if(strcmp(self->id,ID1)==0) {
+	  strcpy(self->CustomID,CID0);
+	  printf("%s",CID0);
+	}
+	if(strcmp(self->id,ID2)==0) {
+      strcpy(self->CustomID,CID0);
+	  printf("%s",CID0);
+	}
+	if(strcmp(self->id,ID3)==0) {
+	  strcpy(self->CustomID,CID0);
+	  printf("%s",CID0);
+	}
+	if(strcmp(self->id,ID4)==0) {
+	  strcpy(self->CustomID,CID0);
+	  printf("%s",CID0);
+	}
+	if(strcmp(self->id,ID5)==0) {
+	  strcpy(self->CustomID,CID0);
+	  printf("%s",CID0);
+	}
+	if(strcmp(self->id,ID6)==0) {
+	  strcpy(self->CustomID,CID0);
+	  printf("%s",CID0);
+	}
+	if(strcmp(self->id,ID7)==0) {
+	  strcpy(self->CustomID,CID0);
+	  printf("%s",CID0);
+	}
 
   }
 }

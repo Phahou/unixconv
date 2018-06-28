@@ -34,8 +34,3 @@ int rmwinCRLF(int argc,const char** argv, int filesum,unsigned int* lineno_, uns
   }
   return 0;
 }
-/*
-int main(int argc,const char** argv){
-  int filesum=argc-1;
-  rmwinCRLF(argc,argv,filesum);
-}*/

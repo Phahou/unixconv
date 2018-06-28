@@ -13,11 +13,10 @@
 #include<string.h>
 #include<stdlib.h>
 #include<stdbool.h>
-#include<sys/stat.h>
+#include<sys/stat.h>  /* needed for recognizing if input is a dir */
 
 /* Own Includes: */
-#include"line.c"      /* line Datastructure which holds all the   */
-                      /* important informations                   */
+#include"line.c"      /* data-structures holding important infos  */
 #include"options.c"   /* for setting eg -r for only reducing      */
 #include"config.c"    /* Custom Config for defining ID Names etc. */
 #include"idsort.c"    /* for sorting IDs in the right order       */
@@ -58,38 +57,24 @@ int reduce2importantdata(const char* filename, int opt){
   fflush(lp->fp);
 
   lp->diff=0;
-  int ikm=0;
   if(opt & 8) printf("...... Reducing <%s>\r",filename);
   for(int done_ids=0;done_ids<=INSTALLED_IDS;done_ids++){
     while(1){
-      ikm++;
-      fflush(lp->ecp->tmp);
-      fflush(lp->fp);
       status=isequalcheck(lp, &pos);
       if(status==-1) break;
+      else if (status==-2) lp->skipln(lp);
 
-      fflush(lp->ecp->tmp);
-      fflush(lp->fp);
-
-      if (status==-2) lp->skipln(lp);
     //get data:
       fgets(lp->ecp->time,12,lp->fp);
-      fprintf(ecp->tmp,"%s",ecp->time);  //epoch done last letter from fgetc = ;
+      fprintf(ecp->tmp,"%s",ecp->time);  //epoch done
 
-      fflush(lp->ecp->tmp);
-      fflush(lp->fp);
+    //Rewriting IDs
+      fgets(lp->ecp->id,21,lp->fp); //>implying the IDs are all 21 bytes long
 
-      //char id[20];                  //Rewriting IDs
-      fgets(lp->ecp->id,21,lp->fp); //?????? why 21 ??????
-
-      //compare IDs and print them in tmp file
+//compare IDs and print them in tmp file
       lp->ecp->printID(lp->ecp,false);
 
-    //everything is fine until here
       fprintf(ecp->tmp,"%c",fgetc(lp->fp));     //Copy Values
-
-      fflush(lp->ecp->tmp);
-      fflush(lp->fp);
 
       fgetc(lp->fp);                            //Without ""
       fgetpos(lp->fp,&pos);
@@ -105,9 +90,6 @@ int reduce2importantdata(const char* filename, int opt){
       free(values);
       fprintf(lp->ecp->tmp,"%lu",ecp->value);
 
-      fflush(lp->ecp->tmp);
-      fflush(lp->fp);
-
     //check if fp is on the right pos
       fgetc(lp->fp); //"
       char ch='0';
@@ -118,9 +100,6 @@ int reduce2importantdata(const char* filename, int opt){
 //time
       lp->ecp->convertedTime(ecp);
       fprintf(ecp->tmp,"\"%s\";",lp->ecp->time_readable); //Print time
-
-      fflush(lp->ecp->tmp);
-      fflush(lp->fp);
 
 //calc_diff
       int calc_status=lp->calc_diff(lp->ecp->value, lp, opt);
@@ -136,6 +115,7 @@ int reduce2importantdata(const char* filename, int opt){
       fprintf(lp->ecp->tmp,"%lu",lp->diff);
       if((lp->diff!=0)&&(lp->diff!=1)) fprintf(ecp->tmp,";%lu",lp->diff);
       fprintf(lp->ecp->tmp,"\n");
+    //save
       fflush(lp->ecp->tmp);
       fflush(lp->fp);
     }
@@ -149,31 +129,25 @@ int reduce2importantdata(const char* filename, int opt){
   return 0;
 }
 
-/*
- * TODO:
- * check if ecp and lp->ecp are at the same position
- * same with their variables
- */
 int main(int argc,const char** argv){
   unsigned int MaxCharsLine=0;
-  unsigned int lineno_[4096];		//saves the letters in a line
-  	  	  	  	  	  	  	//-> I dont think a file will have that much lines
+  unsigned int lineno_[4096];	//saves the letters in a line
+  	  	  	  	  	  	  	  	//-> I dont think a file will have that much lines
+
+  //TODO: make lineno_ 2dimensional so every file has an array
   int opt=options(argc,argv);
-  unsigned int filesum=0;                       //Number of files
+  unsigned int filesum=0;       //Number of files
   for (int i=1;i<argc;i++){
 	  if (!(argv[i][0]=='-')) filesum++;
   }
+  printhelp(opt, argc);			// help Message
 
-  if((opt & 4)||(argc==1)){                     // help Message
-    printhelp();
-    return 0;
-  }
-  if (opt & 2){                                 //converting windows CRLF into unix LF
+  if (opt & 2){                 //converting windows CRLF into unix LF
     rmwinCRLF(argc,argv,filesum, lineno_,&MaxCharsLine);
   }
 
   for(int i=1;i<=filesum;i++){
-    if(argv[i][0]=='-') continue;               //skipping options
+    if(argv[i][0]=='-') continue;  //skipping options
 
     //check if input is dir
     if (stat(argv[i], &sb) == 0 && S_ISDIR(sb.st_mode)){
@@ -181,7 +155,7 @@ int main(int argc,const char** argv){
       continue;
     }
 
-    if(!(opt & 1)) idsort(argv[i], INSTALLED_IDS, opt, lineno_,&MaxCharsLine); //sort IDs in the right order
+    if(!(opt & 1)) idsort(argv[i], INSTALLED_IDS, opt, lineno_, &MaxCharsLine); //sort IDs in the right order
     reduce2importantdata(argv[i], opt);                 //main purpose of the program
   }
   if (opt & 8 ) printf("Cleaning up tmp0.csv\n");
@@ -222,12 +196,6 @@ int fileinit(ln* lpr, int opt){
   return 0;
 }
 
-void printfirstline(ln* lpr){
-  fprintf(lpr->ecp->tmp,"\"Epochzeit\";\"Zaehler-IDs\";\"Zaehlerwert\";");
-  fprintf(lpr->ecp->tmp,"\"Normale Zeit\";\"Stromdifferenz zwischen den ");
-  fprintf(lpr->ecp->tmp,"Messungen\";\"Stromdifferenz ohne 0 & 1\"\n");
-}
-
 void reachedEOF(ln* lpr, int status, int opt){
   if(opt & 8){
     printf("Reached End of Input for <");
@@ -239,19 +207,30 @@ void reachedEOF(ln* lpr, int status, int opt){
   fflush(lpr->fp);
 }
 
-void printhelp(){
+void printfirstline(ln* lpr){
+  fprintf(lpr->ecp->tmp,"\"Epochzeit\";\"Zaehler-IDs\";\"Zaehlerwert\";");
+  fprintf(lpr->ecp->tmp,"\"Normale Zeit\";\"Stromdifferenz zwischen den ");
+  fprintf(lpr->ecp->tmp,"Messungen\";\"Stromdifferenz ohne 0 & 1\"\n");
+}
+
+void printhelp(int opt, int argc){
+  if((opt & 4)||(argc==1)){
   printf(BOLD WHT "Unixconv - A Epoch to human-readable converter 1.0\n\n" RESET);
+  	  	  /* empty line */
+  printf("Verwendung: unixconv [Argumente] [Datei ..]\n\n"
+		  /* empty line */
+		 "  Bitte Aufpassen: Die alten Dateien werden überschrieben, jedoch\n"
+		 "                   werden die Reste der Ursprungsdatei angehängt.(fixed)™\n\n");
 
-  printf("Verwendung: unixconv [Argumente] [Datei ..]\n\n");
-
-  printf("  Bitte Aufpassen: Die alten Dateien werden überschrieben, jedoch\n");
-  printf("                   werden die Reste der Ursprungsdatei angehängt.\n\n");
-
-  printf("  Das Programm wird benutzt um die Rohdaten des MUCEasy™\n");
-  printf("  aufzubereiten & dabei zu verkleinern.\n\n");
+  printf("  Das Programm wird benutzt um die Rohdaten des MUCEasy™\n"
+		 "  aufzubereiten & dabei zu verkleinern.\n\n");
 
   printf(BOLD WHT "Argumente:\n\n" RESET);
 
-  printf("  -v   gesprächig (Es wird auf der Konsole ausgegeben was gerade passiert)\n");
-  printf("  -h   zeigt diese Hilfe an\n\n");
+  printf("  -v   gesprächig (Es wird auf der Konsole ausgegeben was gerade passiert)\n"
+		 "  -h   zeigt diese Hilfe an\n\n"
+		  /* empty line */
+		 "  -n   wandelt CRLF-Zeilenumbrüche(DOS) in LF Zeilenumbrüche(unix),\n"
+		 "       diese Option wird gebraucht, wenn DOS-Dateien vorliegen, da.\n");
+  }
 }
