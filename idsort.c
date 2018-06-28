@@ -7,7 +7,7 @@ FILE* skiplines(FILE* fp,int times){ //skip lines x times
   return fp;
 }
 
-int idsort(const char* filename,int id_nums,int opt){ //id_nums: number of IDs
+int idsort(const char* filename,int id_nums,int opt, unsigned int* lineno_, unsigned int* highest){ //id_nums: number of IDs
   ec* ec_0=new_ec(CID0); //changeable
   ln* ln_0=new_ln(ec_0);
   ln_0->fp=fopen(filename,"r");
@@ -16,7 +16,7 @@ int idsort(const char* filename,int id_nums,int opt){ //id_nums: number of IDs
   char* fl=(char*)malloc(sizeof(char)*strlen(filename));
   strcpy(fl,filename);
   //allocation of strings for file removal at the end of the function
-  char** File_deletion_list=(char**)calloc(sizeof(char*),id_nums);
+  char** del_list=(char**)calloc(sizeof(char*),id_nums);
   if(opt & 8) printf(BOLD WHT "Generating tmp files...\n" RESET);
   //initializing tmp files
   for(int i=0;i<id_nums;i++){
@@ -24,26 +24,24 @@ int idsort(const char* filename,int id_nums,int opt){ //id_nums: number of IDs
     char* _i=(char*)calloc(sizeof(char),7);
     sprintf(_i,"_%d.tmp",i);
     tmp[i]=fopen(strcat(fl,_i),"w+");
-    File_deletion_list[i]=(char*)calloc(sizeof(char),strlen(_i));
-    strcpy(File_deletion_list[i],fl);
+    del_list[i]=(char*)calloc(sizeof(char),strlen(_i));
+    strcpy(del_list[i],fl);
     free(_i);
     strcpy(fl,fl_reset);
   }
   free(fl);
   fpos_t firstline;
-  int line_length=0;
   fseek(ln_0->fp,0,SEEK_SET);
   ln_0->skipln(ln_0); //skip 1 lines
   fgetpos(ln_0->fp,&firstline);
 
-  line_length=ln_0->getlnlen(ln_0); //get length of a line
-  char* line=(char*)malloc(sizeof(char)*line_length);
+  char* line=(char*)calloc(*highest,sizeof(char));
   //sort ids in specific files
   if(opt & 8) printf("...... Sorting <%s>\r",filename);
-
-  //char ID[21];
+  char* ch="b";
   for(int i=0;i<id_nums;i++){
-    char ch=fgetc(ln_0->fp);
+	unsigned int lineno=1;
+	ch="b";
     fsetpos(ln_0->fp,&firstline);
     switch(i){
       case 0: strcpy(ec_0->id,ID0);
@@ -66,11 +64,11 @@ int idsort(const char* filename,int id_nums,int opt){ //id_nums: number of IDs
                exit(-45);
     }
     //filtering IDs in each tmp file
-    while (ch!=EOF){
-      fread(line, line_length+1, 1, ln_0->fp);
+    while (ch!=NULL){
+      ch=fgets(line,lineno_[lineno]+2,ln_0->fp);
       if(strstr(line,ec_0->id)!=NULL) fprintf(tmp[i],"%s",line);
-      ch=fgetc(ln_0->fp);
-      fseek(ln_0->fp, -1,SEEK_CUR);
+      fflush(tmp[i]);
+      lineno++;
     }
   }
 
@@ -81,16 +79,17 @@ int idsort(const char* filename,int id_nums,int opt){ //id_nums: number of IDs
   //merging ID files
   //cp first line
 
-  char first_line[95];
+  line=(char*)realloc(line,sizeof(char)*(lineno_[0]+2));
   fseek(ln_0->fp,0,SEEK_SET);
-  fread(first_line,95,1,ln_0->fp);
+  fgets(line,lineno_[0]+2,ln_0->fp);
 
   //closing filename:
   fclose(ln_0->fp);
 
   FILE* tmp0=fopen("tmp0.csv","w");
   if(tmp0==NULL) perror("Error tmp0.csv: ");
-  fprintf(tmp0,"%s",first_line);
+  fprintf(tmp0,"%s",line);
+  free(line);
   for(int i=0;i<id_nums;i++){
     switch(i){
       case 0: strcpy(ec_0->id,CID0);
@@ -134,8 +133,8 @@ int idsort(const char* filename,int id_nums,int opt){ //id_nums: number of IDs
   }
   //Removing files
   for(int i=0;i<id_nums;i++){
-    remove(File_deletion_list[i]);
-    free(File_deletion_list[i]);
+    remove(del_list[i]);
+    free(del_list[i]);
   }
   if(opt & 8) printf( BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
   return 0;

@@ -53,15 +53,31 @@ int reduce2importantdata(const char* filename, int opt){
 
   fseek(lp->fp,0,SEEK_SET);
   printfirstline(lp);
+
+  fflush(lp->ecp->tmp);
+  fflush(lp->fp);
+
   lp->diff=0;
+  int ikm=0;
   if(opt & 8) printf("...... Reducing <%s>\r",filename);
   for(int done_ids=0;done_ids<=INSTALLED_IDS;done_ids++){
     while(1){
-      if(isequalcheck(lp, &pos)==-1) break;
+      ikm++;
+      fflush(lp->ecp->tmp);
+      fflush(lp->fp);
+      status=isequalcheck(lp, &pos);
+      if(status==-1) break;
 
+      fflush(lp->ecp->tmp);
+      fflush(lp->fp);
+
+      if (status==-2) lp->skipln(lp);
     //get data:
       fgets(lp->ecp->time,12,lp->fp);
       fprintf(ecp->tmp,"%s",ecp->time);  //epoch done last letter from fgetc = ;
+
+      fflush(lp->ecp->tmp);
+      fflush(lp->fp);
 
       //char id[20];                  //Rewriting IDs
       fgets(lp->ecp->id,21,lp->fp); //?????? why 21 ??????
@@ -71,6 +87,10 @@ int reduce2importantdata(const char* filename, int opt){
 
     //everything is fine until here
       fprintf(ecp->tmp,"%c",fgetc(lp->fp));     //Copy Values
+
+      fflush(lp->ecp->tmp);
+      fflush(lp->fp);
+
       fgetc(lp->fp);                            //Without ""
       fgetpos(lp->fp,&pos);
       int i=0;
@@ -85,6 +105,9 @@ int reduce2importantdata(const char* filename, int opt){
       free(values);
       fprintf(lp->ecp->tmp,"%lu",ecp->value);
 
+      fflush(lp->ecp->tmp);
+      fflush(lp->fp);
+
     //check if fp is on the right pos
       fgetc(lp->fp); //"
       char ch='0';
@@ -95,6 +118,9 @@ int reduce2importantdata(const char* filename, int opt){
 //time
       lp->ecp->convertedTime(ecp);
       fprintf(ecp->tmp,"\"%s\";",lp->ecp->time_readable); //Print time
+
+      fflush(lp->ecp->tmp);
+      fflush(lp->fp);
 
 //calc_diff
       int calc_status=lp->calc_diff(lp->ecp->value, lp, opt);
@@ -118,7 +144,7 @@ int reduce2importantdata(const char* filename, int opt){
   fclose(lp->fp);
   free(lp);
   free(ecp);
-  rename("file.csv",filename);
+  //rename("file.csv",filename);
   printf(BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
   return 0;
 }
@@ -129,18 +155,25 @@ int reduce2importantdata(const char* filename, int opt){
  * same with their variables
  */
 int main(int argc,const char** argv){
+  unsigned int MaxCharsLine=0;
+  unsigned int lineno_[4096];		//saves the letters in a line
+  	  	  	  	  	  	  	//-> I dont think a file will have that much lines
   int opt=options(argc,argv);
-  unsigned int filesum=argc-1;                          //Number of files
-  if((opt & 4)||(argc==1)){                             // help Message
+  unsigned int filesum=0;                       //Number of files
+  for (int i=1;i<argc;i++){
+	  if (!(argv[i][0]=='-')) filesum++;
+  }
+
+  if((opt & 4)||(argc==1)){                     // help Message
     printhelp();
     return 0;
   }
-  if (opt & 2){                                        //converting windows CRLF into unix LF
-    rmwinCRLF(argc,argv,filesum);
+  if (opt & 2){                                 //converting windows CRLF into unix LF
+    rmwinCRLF(argc,argv,filesum, lineno_,&MaxCharsLine);
   }
 
   for(int i=1;i<=filesum;i++){
-    if(argv[i][0]=='-') continue;                       //skipping options
+    if(argv[i][0]=='-') continue;               //skipping options
 
     //check if input is dir
     if (stat(argv[i], &sb) == 0 && S_ISDIR(sb.st_mode)){
@@ -148,7 +181,7 @@ int main(int argc,const char** argv){
       continue;
     }
 
-    if(!(opt & 1)) idsort(argv[i], INSTALLED_IDS, opt); //sort IDs in the right order
+    if(!(opt & 1)) idsort(argv[i], INSTALLED_IDS, opt, lineno_,&MaxCharsLine); //sort IDs in the right order
     reduce2importantdata(argv[i], opt);                 //main purpose of the program
   }
   if (opt & 8 ) printf("Cleaning up tmp0.csv\n");
@@ -161,19 +194,20 @@ int main(int argc,const char** argv){
 int isequalcheck(ln* lpr, fpos_t *pos){
   int i=0;
   lpr->skipln(lpr);
+
   fgetpos(lpr->fp,pos);
   char isequal=fgetc(lpr->fp);
-  fsetpos(lpr->fp,pos);
   if(isequal=='='){             //print rest of line e.g. ===ID: A===
-    fgetpos(lpr->fp,pos);
-    i=lpr->getlnlen(lpr);
-    char* idline=(char*)malloc(sizeof(char)*i);
     fsetpos(lpr->fp,pos);
+    i=lpr->getlnlen(lpr);
+    fsetpos(lpr->fp,pos);
+    char* idline=(char*)malloc(sizeof(char)*i);
     fgets(idline,i,lpr->fp);
     fprintf(lpr->ecp->tmp,"%s\n",idline);
     free(idline);
     return -1;
-  }
+  } else if (isequal=='\n') return -2;
+  fsetpos(lpr->fp,pos);
   return 0;
 }
 

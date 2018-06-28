@@ -8,10 +8,7 @@
 #include "config.c"
 #include <stdbool.h>
 
-typedef struct ec_t ec;
 struct tm;
-void epoch2human(ec *self);
-void printid(ec *self, bool printtoterm);
 typedef struct ec_t {
   FILE *tmp;                  //temporary filepointer
   char time[14];              //input time
@@ -20,9 +17,12 @@ typedef struct ec_t {
   char time_readable[34];     //human readable time (converted)
   unsigned long value;        //input value
   /* time_readable */
-    void (*convertedTime)(ec *self);
-    void (*printID)(ec *self, bool printtoterm);
+    void (*convertedTime)(struct ec_t *self);
+    void (*printID)(struct ec_t *self, bool printtoterm);
 }ec;
+
+void epoch2human(ec *self);
+void printid(ec *self, bool printtoterm);
 
 ec* new_ec(char* customid){
   ec* obj = (ec*)malloc(sizeof(ec));

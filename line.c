@@ -6,18 +6,20 @@
 #include <stdlib.h>
 #include "ec.c"
 
-typedef struct ln_t ln;
-int calcdiff(int row_a, ln* self, int opt);
-void skipline(ln *self);
-int getlinelength(ln *self);
 typedef struct ln_t {
   FILE *fp;
   ec* ecp;
   unsigned long diff;
-  int (*calc_diff)(int row_a,ln *self, int opt);
-  void (*skipln)(ln *self);
-  int  (*getlnlen)(ln *self);
+  int (*calc_diff)(int row_a,struct ln_t *self, int opt);
+  void (*skipln)(struct ln_t *self);
+  int  (*getlnlen)(struct ln_t *self);
 } ln;
+
+
+int calcdiff(int row_a, ln* self, int opt);
+void skipline(ln *self);
+int getlinelength(ln *self);
+
 
 ln* new_ln(ec* energycounter){
   ln* obj = (ln*)malloc(sizeof(ln));
@@ -32,13 +34,19 @@ void skipline(ln *self){
   char ch='0';
   while(ch!='\n'){ //skip line
     ch=fgetc(self->fp);
-    if(ch==EOF) perror("Error: -10");
+    if(ch==EOF){
+      perror("EOF ERROR");
+      break;
+    }
   }
 }
 
 int getlinelength(ln *self){
   int i=0;
+  fpos_t reset;
+  fgetpos(self->fp,&reset);
   while (fgetc(self->fp)!='\n') i++;
+  fsetpos(self->fp,&reset);
   return i;
 }
 
