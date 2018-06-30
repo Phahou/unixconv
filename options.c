@@ -1,8 +1,9 @@
  /* option.c for Program options bc it is nice to have options
   * -h for help
   * -v for verbose
+  * -n for windows input
   * Options are stored in one int: opt
-  * bitfield: 0000 vh00 
+  * bitfield: 0000 vhn0
   */
 
 #define PATTERN "\"Timestamp\""

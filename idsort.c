@@ -1,23 +1,24 @@
 /* idsort.c: Sorting files bc BUS Systems aren't perfect */
 
-void msort(int id_nums,unsigned int* lineno_,char* line,ln* ln_0,FILE **tmp,fpos_t firstline);
+#include"Tmsort.c"
+void* msort(void* th_);
 
-int idsort(const char* filename,int id_nums,int opt, unsigned int* lineno_, unsigned int* highest){ //id_nums: number of IDs
+int idsort(const char* filename,int opt, unsigned int* lineno_, unsigned int* highest){ //id_nums: number of IDs
   ec* ec_0=new_ec(CID0); //changeable
   ln* ln_0=new_ln(ec_0);
   ln_0->fp=fopen(filename,"r");
 
-  FILE **tmp	 = (FILE**)malloc(sizeof(FILE*)*id_nums);
-  char** del_list= (char**)calloc(sizeof(char*),id_nums);
+  FILE **tmp	 = (FILE**)malloc(sizeof(FILE*)*INSTALLED_IDS);
+  char** del_list= (char**)calloc(sizeof(char*),INSTALLED_IDS);
   char* fl_reset = (char*)malloc(sizeof(char)*strlen(filename));
   char* fl		 = (char*)malloc(sizeof(char)*strlen(filename));
   strcpy(fl,filename);
 
 
-  if(opt & 8) printf(BOLD WHT "Generating tmp files...\n" RESET);
+  //if(opt & 8) printf(BOLD WHT "Generating tmp files...\n" RESET);
 
   //initializing tmp files
-  for(int i=0;i<id_nums;i++){
+  for(int i=0;i<INSTALLED_IDS;i++){
     strcpy(fl_reset,fl);
 
     char* i_=(char*)calloc(sizeof(char),7);
@@ -39,18 +40,34 @@ int idsort(const char* filename,int id_nums,int opt, unsigned int* lineno_, unsi
   //sort ids in specific files
 
 
+
+
+
+
+
+
+
+
   if(opt & 8) printf("...... Sorting <%s>\r",filename);
-  msort(id_nums,lineno_,line,ln_0,tmp,firstline);
-
-
-  if(opt & 8){
-    printf( BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
-    printf("...... Merging tmp files\r");
+  Tmst** threads=(Tmst**)malloc(INSTALLED_IDS*sizeof(Tmst*));
+  //Tmsort_argv a;
+  for(int i=0;i<INSTALLED_IDS;i++){
+    //create threads
+	threads[i] = new_Threadedmsort_argv_t(lineno_,highest,del_list[i],tmp[i],i);
+	pthread_create(threads[i]->t_id,NULL /*(default)*/,msort, threads[i]);
+	pthread_join(*threads[i]->t_id, NULL);
+	//sort
   }
-//merging ID files
-  //cp first line
+
+
+  //doing sth different to buy the threads more time
+  //merging ID files
+    //cp first line
   line=(char*)realloc(line,sizeof(char)*(lineno_[0]+2));
   fgets(line,lineno_[0]+2,ln_0->fp);
+
+  //closing filename:
+  fclose(ln_0->fp);
 
   //closing filename:
   fclose(ln_0->fp);
@@ -59,7 +76,26 @@ int idsort(const char* filename,int id_nums,int opt, unsigned int* lineno_, unsi
   fprintf(tmp0,"%s",line);
   free(line);
 
-  for(int i=0;i<id_nums;i++){
+  //join threads
+  for(int i=0;i<INSTALLED_IDS;i++){
+	pthread_join(*threads[i]->t_id, NULL);
+    del_Threadedmsort_argv_t(threads[i]);
+  }
+
+
+
+
+
+
+
+
+
+  if(opt & 8){
+    printf( BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
+    printf("...... Merging tmp files\r");
+  }
+
+  for(int i=0;i<INSTALLED_IDS;i++){
     switch(i){
       case 0: strcpy(ec_0->id,CID0);
               break;
@@ -102,7 +138,7 @@ int idsort(const char* filename,int id_nums,int opt, unsigned int* lineno_, unsi
     printf("...... Removing tmp files\r");
   }
   //Removing files
-  for(int i=0;i<id_nums;i++){
+  for(int i=0;i<INSTALLED_IDS;i++){
     remove(del_list[i]);
     free(del_list[i]);
   }
@@ -110,38 +146,37 @@ int idsort(const char* filename,int id_nums,int opt, unsigned int* lineno_, unsi
   return 0;
 }
 
-void msort(int id_nums,unsigned int* lineno_,char* line,ln* ln_0,FILE **tmp,fpos_t firstline){
+void* msort(void* th_){
+  Tmst* th=(Tmst*)th_;
   char* ch="b";
-  for(int i=0;i<id_nums;i++){
-	unsigned int lineno=1;
-	ch="b";
-	fsetpos(ln_0->fp,&firstline);
-	switch(i){
-	  case 0: strcpy(ln_0->ecp->id,ID0);
+  unsigned int lineno=1;
+  fseek(th->ln_0->fp,th->lineno_[0]+2,SEEK_SET); //skips the first line +2 bc \n and first letter in newline
+	switch(th->i){
+	  case 0: strcpy(th->ln_0->ecp->id,ID0);
 			  break;
-	  case 1: strcpy(ln_0->ecp->id,ID1);
+	  case 1: strcpy(th->ln_0->ecp->id,ID1);
 			  break;
-	  case 2: strcpy(ln_0->ecp->id,ID2);
+	  case 2: strcpy(th->ln_0->ecp->id,ID2);
 			  break;
-	  case 3: strcpy(ln_0->ecp->id,ID3);
+	  case 3: strcpy(th->ln_0->ecp->id,ID3);
 			  break;
-	  case 4: strcpy(ln_0->ecp->id,ID4);
+	  case 4: strcpy(th->ln_0->ecp->id,ID4);
 			  break;
-	  case 5: strcpy(ln_0->ecp->id,ID5);
+	  case 5: strcpy(th->ln_0->ecp->id,ID5);
 			  break;
-	  case 6: strcpy(ln_0->ecp->id,ID6);
+	  case 6: strcpy(th->ln_0->ecp->id,ID6);
 			  break;
-	  case 7: strcpy(ln_0->ecp->id,ID7);
+	  case 7: strcpy(th->ln_0->ecp->id,ID7);
 			  break;
 	  default: fprintf(stderr,"\nError switch(i) line 62 in idsort.c\n"); //never happens
 			   exit(-45);
 	}
 //filtering IDs in each tmp file
 	while (ch!=NULL){
-	  ch=fgets(line,lineno_[lineno]+2,ln_0->fp);
-	  if(strstr(line,ln_0->ecp->id)!=NULL) fprintf(tmp[i],"%s",line);
-	  fflush(tmp[i]);
+	  ch=fgets(th->line,th->lineno_[lineno]+2,th->ln_0->fp);
+	  if(strstr(th->line,th->ln_0->ecp->id)!=NULL) fprintf(th->tmp,"%s",th->line);
+	  fflush(th->tmp);
 	  lineno++;
 	}
-  }
+	pthread_exit(0);
 }

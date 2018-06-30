@@ -1,4 +1,6 @@
 /* windows.c for converting windows CRLF into LF (dos into unix) */
+
+/*TODO: make it for multiple files make it multithreaded */
 #include<stdio.h>
 int rmwinCRLF(int argc,const char** argv, int filesum,unsigned int* lineno_, unsigned int* Max){
 	unsigned int lineno=0;

@@ -14,6 +14,7 @@
 #include<stdlib.h>
 #include<stdbool.h>
 #include<sys/stat.h>  /* needed for recognizing if input is a dir */
+#include<pthread.h>   /* for multithreading in idsort()           */
 
 /* Own Includes: */
 #include"line.c"      /* data-structures holding important infos  */
@@ -102,7 +103,7 @@ int reduce2importantdata(const char* filename, int opt){
       fprintf(ecp->tmp,"\"%s\";",lp->ecp->time_readable); //Print time
 
 //calc_diff
-      int calc_status=lp->calc_diff(lp->ecp->value, lp, opt);
+      int calc_status=lp->calc_diff(lp->ecp->value, lp/*, opt*/);
       if(calc_status==-10){
         reachedEOF(lp, calc_status, opt);
         break;
@@ -146,7 +147,7 @@ int main(int argc,const char** argv){
     rmwinCRLF(argc,argv,filesum, lineno_,&MaxCharsLine);
   }
 
-  for(int i=1;i<=filesum;i++){
+  for(unsigned int i=1;i<=filesum;i++){
     if(argv[i][0]=='-') continue;  //skipping options
 
     //check if input is dir
@@ -155,13 +156,29 @@ int main(int argc,const char** argv){
       continue;
     }
 
-    if(!(opt & 1)) idsort(argv[i], INSTALLED_IDS, opt, lineno_, &MaxCharsLine); //sort IDs in the right order
+    if(!(opt & 1)) idsort(argv[i], opt, lineno_, &MaxCharsLine); //sort IDs in the right order
     reduce2importantdata(argv[i], opt);                 //main purpose of the program
   }
   if (opt & 8 ) printf("Cleaning up tmp0.csv\n");
   remove("tmp0.csv");
   return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* Helper functions */
 

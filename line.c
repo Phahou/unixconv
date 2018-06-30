@@ -10,13 +10,13 @@ typedef struct ln_t {
   FILE *fp;
   ec* ecp;
   unsigned long diff;
-  int (*calc_diff)(int row_a,struct ln_t *self, int opt);
+  int (*calc_diff)(int row_a,struct ln_t *self/*, int opt*/);
   void (*skipln)(struct ln_t *self);
   int  (*getlnlen)(struct ln_t *self);
 } ln;
 
 
-int calcdiff(int row_a, ln* self, int opt);
+int calcdiff(int row_a, ln* self/*, int opt*/);
 void skipline(ln *self);
 int getlinelength(ln *self);
 
@@ -28,6 +28,15 @@ ln* new_ln(ec* energycounter){
   obj->skipln = &skipline;
   obj->getlnlen= &getlinelength;
   return obj;
+}
+
+void del_ln(ln* obj){
+  if(obj->ecp!=NULL){
+    del_ec(obj->ecp);
+  }
+  if(obj!=NULL){
+	free(obj);
+  }
 }
 
 void skipline(ln *self){
@@ -50,7 +59,7 @@ int getlinelength(ln *self){
   return i;
 }
 
-int calcdiff(int row_a, ln* self, int opt){
+int calcdiff(int row_a, ln* self/*, int opt*/){
   fpos_t row_below,fp_reset;
   fgetpos(self->fp, &fp_reset);
 

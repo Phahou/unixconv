@@ -9,7 +9,9 @@
 #include <stdbool.h>
 
 struct tm;
+
 typedef struct ec_t {
+  FILE *fp;
   FILE *tmp;                  //temporary filepointer
   char time[14];              //input time
   char id[20];                //input ID (TIP...)
@@ -30,6 +32,12 @@ ec* new_ec(char* customid){
   obj->convertedTime = &epoch2human;
   obj->printID = &printid;
   return obj;
+}
+
+void del_ec(ec* ecp){
+  if(ecp!=NULL){
+    free(ecp);
+  }
 }
 
 
