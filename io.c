@@ -39,8 +39,7 @@ int idhasntchanged(char* id){
 }
 
 int reduce2importantdata(const char* filename, int opt){
-  ec* ecp=new_ec(CID0); //energy-counter-pointer
-  ln* lp =new_ln(ecp);  //line-pointer
+  ln* lp =new_ln(new_ec(CID0));  //line-pointer
   lp->fp=fopen("tmp0.csv","r");
   int status=alreadyconverted(filename, lp->fp, opt);
   if(status == 0) return 0;           //skip function nothing to do here
@@ -67,7 +66,7 @@ int reduce2importantdata(const char* filename, int opt){
 
     //get data:
       fgets(lp->ecp->time,12,lp->fp);
-      fprintf(ecp->tmp,"%s",ecp->time);  //epoch done
+      fprintf(lp->ecp->tmp,"%s",lp->ecp->time);  //epoch done
 
     //Rewriting IDs
       fgets(lp->ecp->id,21,lp->fp); //>implying the IDs are all 21 bytes long
@@ -75,7 +74,7 @@ int reduce2importantdata(const char* filename, int opt){
 //compare IDs and print them in tmp file
       lp->ecp->printID(lp->ecp,false);
 
-      fprintf(ecp->tmp,"%c",fgetc(lp->fp));     //Copy Values
+      fprintf(lp->ecp->tmp,"%c",fgetc(lp->fp));     //Copy Values
 
       fgetc(lp->fp);                            //Without ""
       fgetpos(lp->fp,&pos);
@@ -89,18 +88,18 @@ int reduce2importantdata(const char* filename, int opt){
       }
       lp->ecp->value=strtoul(values,NULL,10);
       free(values);
-      fprintf(lp->ecp->tmp,"%lu",ecp->value);
+      fprintf(lp->ecp->tmp,"%lu",lp->ecp->value);
 
     //check if fp is on the right pos
       fgetc(lp->fp); //"
       char ch='0';
       ch=fgetc(lp->fp);
-      if(ch==';') fprintf(ecp->tmp,"%c",ch);
+      if(ch==';') fprintf(lp->ecp->tmp,"%c",ch);
       else perror("File will be corrupted...");
 
 //time
-      lp->ecp->convertedTime(ecp);
-      fprintf(ecp->tmp,"\"%s\";",lp->ecp->time_readable); //Print time
+      lp->ecp->convertedTime(lp->ecp);
+      fprintf(lp->ecp->tmp,"\"%s\";",lp->ecp->time_readable); //Print time
 
 //calc_diff
       int calc_status=lp->calc_diff(lp->ecp->value, lp/*, opt*/);
@@ -114,7 +113,7 @@ int reduce2importantdata(const char* filename, int opt){
         break;
       }
       fprintf(lp->ecp->tmp,"%lu",lp->diff);
-      if((lp->diff!=0)&&(lp->diff!=1)) fprintf(ecp->tmp,";%lu",lp->diff);
+      if((lp->diff!=0)&&(lp->diff!=1)) fprintf(lp->ecp->tmp,";%lu",lp->diff);
       fprintf(lp->ecp->tmp,"\n");
     //save
       fflush(lp->ecp->tmp);
@@ -124,7 +123,7 @@ int reduce2importantdata(const char* filename, int opt){
   fclose(lp->ecp->tmp);
   fclose(lp->fp);
   free(lp);
-  free(ecp);
+  free(lp->ecp);
   //rename("file.csv",filename);
   printf(BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
   return 0;
@@ -137,7 +136,7 @@ int main(int argc,const char** argv){
 
   //TODO: make lineno_ 2dimensional so every file has an array
   int opt=options(argc,argv);
-  unsigned int filesum=0;       //Number of files
+  unsigned int filesum=0;       //Number of files 1
   for (int i=1;i<argc;i++){
 	  if (!(argv[i][0]=='-')) filesum++;
   }
@@ -147,11 +146,11 @@ int main(int argc,const char** argv){
     rmwinCRLF(argc,argv,filesum, lineno_,&MaxCharsLine);
   }
 
-  for(unsigned int i=1;i<=filesum;i++){
+  for(unsigned int i=1;i<=filesum+1;i++){
     if(argv[i][0]=='-') continue;  //skipping options
 
     //check if input is dir
-    if (stat(argv[i], &sb) == 0 && S_ISDIR(sb.st_mode)){
+    if (stat(argv[i+1], &sb) == 0 && S_ISDIR(sb.st_mode)){
       fprintf(stderr,"%s is a directory\n",argv[i]);
       continue;
     }
@@ -204,7 +203,7 @@ int isequalcheck(ln* lpr, fpos_t *pos){
 
 int fileinit(ln* lpr, int opt){
   if(opt & 8) printf("...... Opening files for conversion\r");
-  lpr->ecp->tmp=fopen("file.csv","w+");
+  lpr->ecp->tmp=/*tmpfile();/*/fopen("file.csv","w+");
   if(lpr->ecp->tmp == NULL){
     perror("\nError file.csv:");
     return -1;

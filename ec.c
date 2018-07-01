@@ -11,7 +11,6 @@
 struct tm;
 
 typedef struct ec_t {
-  FILE *fp;
   FILE *tmp;                  //temporary filepointer
   char time[14];              //input time
   char id[20];                //input ID (TIP...)
@@ -27,8 +26,10 @@ void epoch2human(ec *self);
 void printid(ec *self, bool printtoterm);
 
 ec* new_ec(char* customid){
-  ec* obj = (ec*)malloc(sizeof(ec));
-  strcpy(obj->CustomID,customid);
+  ec* obj = (ec*)calloc(1,sizeof(ec));
+  if(customid!=NULL){
+    strcpy(obj->CustomID,customid);
+  }
   obj->convertedTime = &epoch2human;
   obj->printID = &printid;
   return obj;
