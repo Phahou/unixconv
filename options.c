@@ -1,9 +1,8 @@
  /* option.c for Program options bc it is nice to have options
   * -h for help
   * -v for verbose
-  * -n for windows input
   * Options are stored in one int: opt
-  * bitfield: 0000 vhn0
+  * bitfield: 0000 vh00
   */
 
 #define PATTERN "\"Timestamp\""
@@ -15,7 +14,7 @@ int options(int argc,const char** argv){
     if(argv[i][0]=='-'){
       int len_argv=strlen(argv[i]);
       for(int j=1;j<len_argv;j++){
-        if(argv[i][j]=='v') opt=opt | 8; //0000 1000
+        if(argv[i][j]=='v') opt=opt | 8;      //0000 1000
         else if(argv[i][j]=='h') opt=opt | 4; //0000 0100
         else if(argv[i][j]=='n') opt=opt | 2; //0000 0010
         else {
@@ -49,7 +48,7 @@ int alreadyconverted(const char* filename,FILE *fp, int opt){
     printf(BOLD GRN "converted\n" RESET);
     fsetpos(fp,&pos);
     return 0;
-  }else printf("Patterns don't match\nRename PATTERN(%s) in #define in options.c and compile again\n",PATTERN);
+  }else printf("Patterns don't match\nRename PATTERN(%s)in #define in options.c and compile again\n",PATTERN);
   fsetpos(fp,&pos);
   return 1; // should normally never get here with the right input files
 }

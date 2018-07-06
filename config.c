@@ -1,4 +1,5 @@
 /* config.c */
+
 /* Geräte Namen (IDs) */
 #define ID0 "\"TIP-00078107-03-02\""
 #define ID1 "\"TIP-00078155-03-02\""
@@ -11,9 +12,8 @@
 
 /* Anzahl der aktiven IDs (für reduce2importantdata) wichtig */
 #define INSTALLED_IDS 2
-/* End of Config */
 
-/* Benutzerdefinierte IDs(Costum IDs) */ 
+/* Benutzerdefinierte IDs(Costum IDs) */
 /* Beispiel: CID0 "\"Verpackungsmaschine\"" */
 #define CID0 "\"ID A\""
 #define CID1 "\"ID B\""
@@ -23,3 +23,17 @@
 #define CID5 "\"PLATZHALTER\""
 #define CID6 "\"PLATZHALTER\""
 #define CID7 "\"PLATZHALTER\""
+
+
+
+
+
+
+/* End of Config Don't change anything here */
+/* Colors yay thanks to stackoverflow.com */
+#define RED   "\x1B[31m"
+#define GRN   "\x1B[32m"
+#define BLU   "\x1B[34m"
+#define WHT   "\x1B[37m"
+#define RESET "\x1B[0m"
+#define BOLD  "\x1B[1m"

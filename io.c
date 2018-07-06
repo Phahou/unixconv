@@ -1,14 +1,15 @@
 /* io.c for I/O Operations. Is at the same time the "main" compiling file */
 
-/* Colors yay thanks to stackoverflow.com */
-#define RED   "\x1B[31m"
-#define GRN   "\x1B[32m"
-#define BLU   "\x1B[34m"
-#define WHT   "\x1B[37m"
-#define RESET "\x1B[0m"
-#define BOLD  "\x1B[1m"
+/* ToC
+ * 1. Includes
+ * -> POSIX libs
+ * -> Own Includes (with OO Concepts)
+ * 2. function definitions
+ * 3. main function
+ * 4. Helper functions
+ */
 
-/* Includes */
+/* 1. Includes */
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
@@ -25,13 +26,65 @@
                       /*    and so on                             */
 #include"windows.c"   /* converts windows CRLF into unix LF       */
 
-
 struct stat sb; //for checking if input is a dir
-void printhelp();
-void printfirstline(ln* lpr);
-int fileinit(ln* lpr, int opt);
+
+/* 2. function definitions */
+int idhasntchanged(char* id);
+int reduce2importantdata(const char* filename, int opt);
 int isequalcheck(ln* lpr, fpos_t *pos);
+int fileinit(ln* lpr, int opt);
 void reachedEOF(ln* lpr, int status, int opt);
+void printfirstline(ln* lpr);
+void printhelp(int opt, int argc);
+
+/* 3. main function */
+
+int main(int argc,const char** argv){
+  int opt=options(argc,argv);
+  printhelp(opt, argc);			// help Message
+
+  unsigned int MaxCharsLine=0, k=0;
+
+
+  //TODO: make lineno_ 2dimensional so every file has an array
+  unsigned int filesum=0;       //Number of files 1
+  for (int i=1;i<argc;i++){
+	  if (argv[i][0]!='-') filesum++;
+  }
+
+  //alloc an array for every input file
+  unsigned int** lineno_=(unsigned int**)malloc(filesum*sizeof(unsigned int*));
+  	  	  	  	  	  	  	  //-> I dont think a file will have that much lines
+  for(unsigned int file=0;i<filesum;i++){
+    lineno_[file]=	(unsigned int*)malloc(2048*sizeof(unsigned int));
+  }
+
+  for(unsigned int i=1;i<=filesum+1;i++){
+    if(argv[i][0]=='-') continue;  //skipping options
+    if(filesum<=k) break;
+    else k++;
+
+    //check if input is dir
+    if (stat(argv[i+1], &sb) == 0 && S_ISDIR(sb.st_mode)){
+      fprintf(stderr,"%s is a directory\n",argv[i]);
+      continue;
+    }
+
+
+    if (opt & 2){                 //converting windows CRLF into unix LF
+      rmwinCRLF(argc,argv,filesum, lineno_,&MaxCharsLine);
+    }
+
+    if(!(opt & 1)) idsort(argv[i], opt, lineno_, &MaxCharsLine); //sort IDs in the right order
+
+    reduce2importantdata(argv[i], opt);                 //main purpose of the program
+  }
+  if (   (opt & 8)  &&  (NULL != fopen("tm0.csv","r"))   ){
+     printf("Cleaning up tmp0.csv\n");
+  }
+  remove("tmp0.csv");
+  return 0;
+}
 
 
 int idhasntchanged(char* id){
@@ -129,58 +182,7 @@ int reduce2importantdata(const char* filename, int opt){
   return 0;
 }
 
-int main(int argc,const char** argv){
-  unsigned int MaxCharsLine=0;
-  unsigned int lineno_[4096];	//saves the letters in a line
-  	  	  	  	  	  	  	  	//-> I dont think a file will have that much lines
-
-  //TODO: make lineno_ 2dimensional so every file has an array
-  int opt=options(argc,argv);
-  unsigned int filesum=0;       //Number of files 1
-  for (int i=1;i<argc;i++){
-	  if (!(argv[i][0]=='-')) filesum++;
-  }
-  printhelp(opt, argc);			// help Message
-
-  if (opt & 2){                 //converting windows CRLF into unix LF
-    rmwinCRLF(argc,argv,filesum, lineno_,&MaxCharsLine);
-  }
-
-  for(unsigned int i=1;i<=filesum+1;i++){
-    if(argv[i][0]=='-') continue;  //skipping options
-
-    //check if input is dir
-    if (stat(argv[i+1], &sb) == 0 && S_ISDIR(sb.st_mode)){
-      fprintf(stderr,"%s is a directory\n",argv[i]);
-      continue;
-    }
-
-    if(!(opt & 1)) idsort(argv[i], opt, lineno_, &MaxCharsLine); //sort IDs in the right order
-    reduce2importantdata(argv[i], opt);                 //main purpose of the program
-  }
-  if (opt & 8 ) printf("Cleaning up tmp0.csv\n");
-  remove("tmp0.csv");
-  return 0;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* Helper functions */
-
+/* 4. Helper functions */
 int isequalcheck(ln* lpr, fpos_t *pos){
   int i=0;
   lpr->skipln(lpr);
