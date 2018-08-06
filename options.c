@@ -1,8 +1,9 @@
  /* option.c for Program options bc it is nice to have options
   * -h for help
   * -v for verbose
+  * -n remove CRLF line feeds to LF line feeds
   * Options are stored in one int: opt
-  * bitfield: 0000 vh00
+  * bitfield: 0000 vhn0
   */
 
 #define PATTERN "\"Timestamp\""
@@ -37,17 +38,16 @@ int alreadyconverted(const char* filename,FILE *fp, int opt){
   char row[12];
   fgets(row,12,fp);
   if(strcmp(PATTERN,row)==0){
-    //fclose(fp);
     if(opt & 8) printf(BOLD BLU "\"%s\" isn't converted yet\n" RESET,filename);
     fsetpos(fp,&pos); //reseting fp
     return 1;
 
   }else if(strcmp(EPOCH,row)==0){
-    //fclose(fp);
-    printf("%s is already ",filename);
-    printf(BOLD GRN "converted\n" RESET);
+    fclose(fp);
+    printf("%s is already " BOLD GRN "converted" RESET "\n",filename);
     fsetpos(fp,&pos);
     return 0;
+
   }else printf("Patterns don't match\nRename PATTERN(%s)in #define in options.c and compile again\n",PATTERN);
   fsetpos(fp,&pos);
   return 1; // should normally never get here with the right input files

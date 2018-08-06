@@ -12,6 +12,14 @@
 
 /* Anzahl der aktiven IDs (für reduce2importantdata) wichtig */
 #define INSTALLED_IDS 2
+/* Maximale Anzahl der Zeilen, die die Eingabedatei hat (kommt auf das
+ * Intervall, das man ausgewählt hat an). Bei einem Intervall von
+ * 5 Minuten wären es bei 2 Geräten circa 1700 Zeilen pro Datei(Tag)
+ *
+ * Diese Zahl wird anschließende mal der INSTALLED_IDS genommen im
+ * Programm (INSTALLED_IDS*MAX_LINE_NUMBERS_PER_DEVICE)
+ */
+#define MAX_LINE_NUMBERS_PER_DEVICE 1024
 
 /* Benutzerdefinierte IDs(Costum IDs) */
 /* Beispiel: CID0 "\"Verpackungsmaschine\"" */

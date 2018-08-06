@@ -3,10 +3,17 @@
 #include"Tmsort.c"
 void* msort(void* th_);
 
-int idsort(const char* filename,int opt, unsigned int* lineno_, unsigned int* highest){ //id_nums: number of IDs
+int idsort(const char* filename,int opt, unsigned int** lineno_, unsigned int* highest){ //id_nums: number of IDs
+  static unsigned int k=0;
   ec* ec_0=new_ec(CID0); //changeable
   ln* ln_0=new_ln(ec_0);
   ln_0->fp=fopen(filename,"r");
+
+  //checking if already converted
+  int status=alreadyconverted(filename, ln_0->fp, opt);
+  if(status == 0) 		return 0;     //skip function nothing to do here
+  else if(status == -1) return -1;    //Error while Opening stuff
+  //ok not converted already continue function
 
   FILE **tmp	 = (FILE**)malloc(sizeof(FILE*)*INSTALLED_IDS);
   char** del_list= (char**)calloc(sizeof(char*),INSTALLED_IDS);
@@ -54,7 +61,7 @@ int idsort(const char* filename,int opt, unsigned int* lineno_, unsigned int* hi
   //Tmsort_argv a;
   for(int i=0;i<INSTALLED_IDS;i++){
     //create threads
-	threads[i] = new_Threadedmsort_argv_t(lineno_,highest,filename,tmp[i],i,firstline);
+	threads[i] = new_Threadedmsort_argv_t(lineno_[k],highest,filename,tmp[i],i,firstline);
 	//if(i==0) continue;		//skip work for thread 1
 	pthread_create(&t_id[i/*-1*/],NULL /*(default)*/,msort, threads[i]);
 	//pthread_join(t_id[i], NULL);
@@ -79,9 +86,9 @@ int idsort(const char* filename,int opt, unsigned int* lineno_, unsigned int* hi
 
   //merging ID files
     //cp first line
-  line=(char*)realloc(line,sizeof(char)*(lineno_[0]+2));
+  line=(char*)realloc(line,sizeof(char)*(lineno_[k][0]+2));
   fseek(ln_0->fp,0,SEEK_SET);
-  fgets(line,lineno_[0]+2,ln_0->fp);
+  fgets(line,lineno_[k][0]+2,ln_0->fp);
 
   //closing filename:
   fclose(ln_0->fp);
@@ -147,8 +154,8 @@ int idsort(const char* filename,int opt, unsigned int* lineno_, unsigned int* hi
     free(del_list[i]);
   }
   if(opt & 8) printf( BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
+  k++;
   return 0;
-
 }
 
 void* msort(void* th_){
