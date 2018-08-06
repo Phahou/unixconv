@@ -78,7 +78,8 @@ int main(int argc,const char** argv){
     idsort(argv[i], opt, lineno_, &MaxCharsLine);
 
 	//main purpose of the program
-    reduce2importantdata(argv[i], opt);
+    int status=reduce2importantdata(argv[i], opt);
+    if (status==-1) i--; //try again 
   }
 
   if (   (opt & 8)  &&  (NULL != fopen("tm0.csv","r"))   ){
@@ -98,8 +99,12 @@ int reduce2importantdata(const char* filename, int opt){
   ln* lp =new_ln(new_ec(CID0));  //line-pointer
   lp->fp=fopen("tmp0.csv","r");
   int status=alreadyconverted(filename, lp->fp, opt);
-  if(status == 0) return 0;           //skip function nothing to do here
-  else if(status == -1) return -1;    //Error while Opening stuff
+
+  if(status == 0) {                   //skip function nothing to do here
+    fclose(lp->fp);
+    del_ln(lp);
+    return 0;
+  } else if(status == -1) return -1;    //Error while Opening stuff
 
   //okay the file isnt reduced yet...
   if(fileinit(lp,opt)==-1) return -1;
@@ -116,37 +121,28 @@ int reduce2importantdata(const char* filename, int opt){
       if(status==-1) break;
       else if (status==-2) lp->skipln(lp);
 
-      fflush(lp->ecp->tmp);
-      fflush(lp->fp);
+//get data:
+      fgets(lp->ecp->time,11,lp->fp);
+      fprintf(lp->ecp->tmp,"%s",lp->ecp->time);
+      fprintf(lp->ecp->tmp,"%c",fgetc(lp->fp) );
 
-
-    //get data:
-      fgets(lp->ecp->time,11,lp->fp);			//get time
-      /*fprintf(lp->ecp->tmp,"%c",*fgetc(lp->fp);*/// );//seperator ;
-      fprintf(lp->ecp->tmp,"%s",lp->ecp->time); //write epoch time
-      fprintf(lp->ecp->tmp,"%c",fgetc(lp->fp) );// );
-      fflush(lp->ecp->tmp);
-      fflush(lp->fp);
-
-    //Rewriting IDs
+//Rewriting IDs
       //>implying the IDs are all 21 bytes long
       fgets(lp->ecp->id,21,lp->fp);				//id
 
-
-      fflush(lp->ecp->tmp);
-      fflush(lp->fp);
 
 //compare IDs and print them in tmp file
       lp->ecp->printID(lp->ecp,false);
 
       fprintf(lp->ecp->tmp,"%c",fgetc(lp->fp));     //Copy Values
 
-      fgetc(lp->fp);                            //Without ""
+      fgetc(lp->fp);                                //Without ""
       fgetpos(lp->fp,&pos);
       int i=0;
       char ch='0';
       for(i=0; ch!='"' && ch!=EOF;i++) ch=fgetc(lp->fp);
       fsetpos(lp->fp,&pos);
+
 //data conversion -> get value & print value
       char* values=(char*)malloc(sizeof(char)*i);
       for(int j=0;j<i;j++){
@@ -155,38 +151,21 @@ int reduce2importantdata(const char* filename, int opt){
       lp->ecp->value=strtoul(values,NULL,10);
       free(values);
       fprintf(lp->ecp->tmp,"%lu",lp->ecp->value);
-
-
-      fflush(lp->ecp->tmp);
-      fflush(lp->fp);
-
-
-    //check if fp is on the right pos
-      fgetc(lp->fp); //"
-      /*if(ch==';') {
-          	fprintf(lp->ecp->tmp,"%c",ch);
-          	printf("file wont be corrupted");
-            }
-      else perror("File will be corrupted...");
-*/
+    
+//check if fp is on the right pos
+      fgetc(lp->fp);
       ch=fgetc(lp->fp);
       if(ch==';') {
     	fprintf(lp->ecp->tmp,"%c",ch);
     	printf("file wont be corrupted");
       }
-      else perror("File will be corrupted...");
+      else //perror("File will be corrupted...");
+
 //time
       lp->ecp->convertedTime(lp->ecp);
       fprintf(lp->ecp->tmp,"\"%s\";",lp->ecp->time_readable); //Print time
 
 //calc_diff
-
-
-
-      fflush(lp->ecp->tmp);
-      fflush(lp->fp);
-
-
 
       int calc_status=lp->calc_diff(lp->ecp->value, lp);
         if(calc_status==-10){
@@ -195,13 +174,15 @@ int reduce2importantdata(const char* filename, int opt){
         }
         if(calc_status==-1){
           reachedEOF(lp, calc_status, opt);
-          done_ids--;                     /* ???????????? */
+          done_ids--;
           break;
         }
       fprintf(lp->ecp->tmp,"%lu",lp->diff);
-      if((lp->diff!=0)&&(lp->diff!=1)) fprintf(lp->ecp->tmp,";%lu",lp->diff);
+      
+      if( (lp->diff != 0) && (lp->diff != 1) ) fprintf(lp->ecp->tmp,";%lu",lp->diff);
+
       fprintf(lp->ecp->tmp,"\n");
-    //save
+    //save line
       fflush(lp->ecp->tmp);
       fflush(lp->fp);
     }

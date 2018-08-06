@@ -1,19 +1,13 @@
 /*
  * Tmsort.c
- *
- *  Created on: 29.06.2018
- *      Author: Phahou
+ * Created on: 29.06.2018
+ *     Author: Phahou
  */
-//#include "line.c"
-//extern struct ec_t;
 
 typedef struct Thm_t {
-  //pthread_t t_id;			////thread id
   unsigned int* lineno_;	//thread safe (Read-only)
-  char* line;				//needs to be initialised
-  ln* ln_0;					//everything related to a line
-  //ec* ecp;
-  //FILE* tmp;				//tmp file for writing
+  char* line;				  //needs to be initialised
+  ln* ln_0;					  //everything related to a line
   unsigned int i;			//for iteration
   fpos_t* pos; 				//for setting fp on the right line in the beginning
 

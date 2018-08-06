@@ -29,10 +29,11 @@ int options(int argc,const char** argv){
 }
 
 int alreadyconverted(const char* filename,FILE *fp, int opt){
-  if(fp == NULL){
+  /*if(!fp){ //fp check is already in windows.c implemented
     perror(filename);
+
     return -1;
-  }
+  }*/
   fpos_t pos;
   fgetpos(fp,&pos);
   char row[12];
@@ -45,7 +46,7 @@ int alreadyconverted(const char* filename,FILE *fp, int opt){
   }else if(strcmp(EPOCH,row)==0){
     fclose(fp);
     printf("%s is already " BOLD GRN "converted" RESET "\n",filename);
-    fsetpos(fp,&pos);
+    //fsetpos(fp,&pos);
     return 0;
 
   }else printf("Patterns don't match\nRename PATTERN(%s)in #define in options.c and compile again\n",PATTERN);

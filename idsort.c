@@ -22,7 +22,7 @@ int idsort(const char* filename,int opt, unsigned int** lineno_, unsigned int* h
   strcpy(fl,filename);
 
 
-  //if(opt & 8) printf(BOLD WHT "Generating tmp files...\n" RESET);
+  if(opt & 8) printf(BOLD WHT "Generating tmp files...\n" RESET);
 
   //initializing tmp files
   for(int i=0;i<INSTALLED_IDS;i++){
@@ -31,7 +31,6 @@ int idsort(const char* filename,int opt, unsigned int** lineno_, unsigned int* h
     char* i_=(char*)calloc(7,sizeof(char));
     sprintf(i_,"_%d.tmp",i);
     tmp[i]=fopen(strcat(fl,i_),"w+");
-    //strcat(fl,i_);
     del_list[i]=(char*)calloc(sizeof(char),strlen(i_));
     strcpy(del_list[i],fl);
 
@@ -46,38 +45,20 @@ int idsort(const char* filename,int opt, unsigned int** lineno_, unsigned int* h
   char* line=(char*)calloc(*highest,sizeof(char));
   //sort ids in specific files
 
-
-
-
-
-
-
-
-
-
   if(opt & 8) printf("...... Sorting <%s>\r",filename);
-  pthread_t t_id[INSTALLED_IDS/*-1*/];
+
+  pthread_t t_id[INSTALLED_IDS];
+  //Create threads
   Tmst** threads=(Tmst**)malloc(INSTALLED_IDS*sizeof(Tmst*));
-  //Tmsort_argv a;
   for(int i=0;i<INSTALLED_IDS;i++){
-    //create threads
-	threads[i] = new_Threadedmsort_argv_t(lineno_[k],highest,filename,tmp[i],i,firstline);
-	//if(i==0) continue;		//skip work for thread 1
-	pthread_create(&t_id[i/*-1*/],NULL /*(default)*/,msort, threads[i]);
-	//pthread_join(t_id[i], NULL);
-	//sort
+	  threads[i] = new_Threadedmsort_argv_t(lineno_[k],highest,filename,tmp[i],i,firstline);
+	  pthread_create(&t_id[i],NULL ,msort, threads[i]);
   }
-
-  //pthread_create(&t_id[0],NULL /*(default)*/,msort, threads[1]);
-  //msort(threads[0]);
-
-  //doing sth different to buy the threads more time
-
 
   //join threads
   for(int i=0;i<INSTALLED_IDS;i++){
-	pthread_join(t_id[i], NULL);
-    //del_Threadedmsort_argv_t(threads[i]);
+	  pthread_join(t_id[i], NULL);
+    del_Threadedmsort_argv_t(threads[i]);// (TODO?)
   }
   free(firstline);
 
@@ -85,7 +66,7 @@ int idsort(const char* filename,int opt, unsigned int** lineno_, unsigned int* h
 
 
   //merging ID files
-    //cp first line
+  //cp first line
   line=(char*)realloc(line,sizeof(char)*(lineno_[k][0]+2));
   fseek(ln_0->fp,0,SEEK_SET);
   fgets(line,lineno_[k][0]+2,ln_0->fp);
@@ -162,7 +143,6 @@ void* msort(void* th_){
   Tmst* th=(Tmst*)th_;
   char* ch="b";
   unsigned int lineno=1;
-  //fsetpos(th->ln_0->fp,th->pos);
   fseek(th->ln_0->fp,th->lineno_[0]+1,SEEK_SET); //skips the first line +2 bc \n and first letter in newline
 	switch(th->i){
 	  case 0: strcpy(th->ln_0->ecp->id,ID0);
@@ -186,7 +166,7 @@ void* msort(void* th_){
 	}
 //filtering IDs in each tmp file
   unsigned int err_no_ids_found	= 0;
-  unsigned int lim				= (INSTALLED_IDS*3)+1;
+  unsigned int lim              = (INSTALLED_IDS*3)+1;
   bool called=true;
 
 	while ((ch!=NULL)){
@@ -213,6 +193,5 @@ void* msort(void* th_){
 	  fflush(th->ln_0->ecp->tmp);
 	  lineno++;
 	}
-	//fclose(th->ln_0->ecp->tmp);
 	pthread_exit(0);
 }
