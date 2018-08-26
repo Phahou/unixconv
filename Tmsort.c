@@ -10,6 +10,7 @@ typedef struct Thm_t {
   ln* ln_0;					  //everything related to a line
   unsigned int i;			//for iteration
   fpos_t* pos; 				//for setting fp on the right line in the beginning
+  char filename[50];
 
 }Tmst;
 
@@ -22,6 +23,7 @@ Tmst* new_Threadedmsort_argv_t(unsigned int* lineno_,unsigned int* highest,const
 	obj->pos=pos_;
 	obj->ln_0->ecp->tmp=tmp_;
 	obj->i=i_;
+	strcpy(obj->filename,filename);
 	return obj;
 }
 void del_Threadedmsort_argv_t(Tmst* obj){

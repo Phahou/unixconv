@@ -2,8 +2,9 @@
   * -h for help
   * -v for verbose
   * -n remove CRLF line feeds to LF line feeds
+  * -c append ;;;;; to file for better viewing in a csv software (eg libreoffice)
   * Options are stored in one int: opt
-  * bitfield: 0000 vhn0
+  * bitfield: 0000 vhnc
   */
 
 #define PATTERN "\"Timestamp\""
@@ -18,6 +19,7 @@ int options(int argc,const char** argv){
         if(argv[i][j]=='v') opt=opt | 8;      //0000 1000
         else if(argv[i][j]=='h') opt=opt | 4; //0000 0100
         else if(argv[i][j]=='n') opt=opt | 2; //0000 0010
+        else if(argv[i][j]=='c') opt=opt | 1; //0000 0001
         else {
           printf("Invalid Option: %s\n",argv[i]);
           exit(-1);
@@ -51,5 +53,5 @@ int alreadyconverted(const char* filename,FILE *fp, int opt){
 
   }else printf("Patterns don't match\nRename PATTERN(%s)in #define in options.c and compile again\n",PATTERN);
   fsetpos(fp,&pos);
-  return 1; // should normally never get here with the right input files
+  return 2; // should normally never get here with the right input files
 }

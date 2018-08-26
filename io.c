@@ -68,25 +68,32 @@ int main(int argc,const char** argv){
       continue;
     }
 
-    //converting windows CRLF into unix LF
-    if (opt & 2){
-      rmwinCRLF(argv[i], lineno_, &MaxCharsLine);
+    //check if it is already converted 1 = no 0 = yes
+    FILE* fp=fopen(argv[i],"r");
+    int not_converted=alreadyconverted(argv[i], fp, opt);
+    fclose(fp);
+
+    if(not_converted==2) fprintf(stderr,"Did you gave me the right input file?");
+    if(not_converted){
+      //converting windows CRLF into unix LF
+      if (opt & 2){
+        rmwinCRLF(argv[i], lineno_, &MaxCharsLine);
+      }
+
+      //sort IDs in the right order
+      idsort(argv[i], opt, lineno_, &MaxCharsLine);
+      //if (converted==0)
+	  //main purpose of the program
+      int status=reduce2importantdata(argv[i], opt);
+      if (status==-1) i--; //try again
     }
 
+    if ( (opt & 8) && (NULL != fopen("tm0.csv","r")) ){
+      printf("Cleaning up tmp0.csv\n");
+      remove("tmp0.csv");
+    }
 
-    //sort IDs in the right order
-    idsort(argv[i], opt, lineno_, &MaxCharsLine);
-
-	//main purpose of the program
-    int status=reduce2importantdata(argv[i], opt);
-    if (status==-1) i--; //try again 
   }
-
-  if (   (opt & 8)  &&  (NULL != fopen("tm0.csv","r"))   ){
-     printf("Cleaning up tmp0.csv\n");
-     remove("tmp0.csv");
-  }
-
   return 0;
 }
 
@@ -132,7 +139,7 @@ int reduce2importantdata(const char* filename, int opt){
 
 
 //compare IDs and print them in tmp file
-      lp->ecp->printID(lp->ecp,false);
+      lp->ecp->printID(lp->ecp,false, opt);
 
       fprintf(lp->ecp->tmp,"%c",fgetc(lp->fp));     //Copy Values
 
@@ -150,16 +157,20 @@ int reduce2importantdata(const char* filename, int opt){
       }
       lp->ecp->value=strtoul(values,NULL,10);
       free(values);
-      fprintf(lp->ecp->tmp,"%lu",lp->ecp->value);
+      fprintf(lp->ecp->tmp,"%lu;",lp->ecp->value);
     
 //check if fp is on the right pos
-      fgetc(lp->fp);
-      ch=fgetc(lp->fp);
-      if(ch==';') {
+      fgetc(lp->fp); //skip "
+      fgetc(lp->fp); //skip ;
+
+
+      /*if(ch==';') {
     	fprintf(lp->ecp->tmp,"%c",ch);
     	printf("file wont be corrupted");
       }
       else //perror("File will be corrupted...");
+*/
+
 
 //time
       lp->ecp->convertedTime(lp->ecp);
@@ -192,7 +203,12 @@ int reduce2importantdata(const char* filename, int opt){
   free(lp);
   free(lp->ecp);
   rename("file.csv",filename);
-  printf(BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
+
+  //new
+  remove("tmp0.csv");
+  //end new
+
+  printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
   return 0;
 }
 
@@ -231,7 +247,7 @@ int fileinit(ln* lpr, int opt){
 void reachedEOF(ln* lpr, int status, int opt){
   if(opt & 8){
     printf("Reached End of Input for <");
-    lpr->ecp->printID(lpr->ecp,true);
+    lpr->ecp->printID(lpr->ecp,true, opt);
     printf(">\n");
   }
   //printing a 0 for diff bc we have only 1 value
@@ -250,7 +266,7 @@ void printfirstline(ln* lpr){
 void printhelp(int opt, int argc){
   if((opt & 4)||(argc==1)){
   printf(BOLD WHT
-         "Unixconv - A Epoch to human-readable converter 1.0\n\n" RESET);
+         "Unixconv - A Epoch to human-readable converter 1.1\n\n" RESET);
   	  	  /* empty line */
   printf("Verwendung: unixconv [Argumente] [Datei ..]\n\n"
           /* empty line */
@@ -268,6 +284,11 @@ void printhelp(int opt, int argc){
 		  /* empty line */
 		 "  -n   wandelt CRLF-Zeilenumbrüche(DOS) in LF Zeilenumbrüche(Unix) um.\n"
 		 "       Diese Option wird gebraucht, wenn DOS-Dateien vorliegen. Es ist\n"
-     "       eine gute Idee es allgemein mitzuübergeben.\n");
+         "       eine gute Idee es allgemein mitzuübergeben.\n\n"
+
+         "  -c   sorgt dafür das in der Ausgabedatei mehrere Semikolons (;) sind\n"
+         "       um eine bessere Ansicht in Office Programmen zu haben wie bspw.\n"
+         "       Libreoffice. (Sinnvoll, falls man mit den Daten direkt arbeiten\n"
+         "       will, statt sie weiterverarbeiten zu lassen.\n\n");
   }
 }

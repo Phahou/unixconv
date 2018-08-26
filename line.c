@@ -10,6 +10,7 @@ typedef struct ln_t {
   FILE *fp;
   ec* ecp;
   unsigned long diff;
+
   int (*calc_diff)(int row_a,struct ln_t *self);
   void (*skipln)(struct ln_t *self);
   int  (*getlnlen)(struct ln_t *self);
