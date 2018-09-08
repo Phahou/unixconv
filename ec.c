@@ -11,12 +11,12 @@
 struct tm;
 
 typedef struct ec_t {
-  FILE *tmp;                  //temporary filepointer
-  char time[14];              //input time
-  char id[20];                //input ID (TIP...)
-  char CustomID[20];          //Custom ID
-  char time_readable[34];     //human readable time (converted)
-  unsigned long value;        //input value
+  FILE *tmp;                  				//temporary filepointer
+  char time[EPOCH_TIME_LENGTH];             //input time
+  char id[TIP_INPUT_LENGTH];  				//input ID (TIP...)
+  char CustomID[CUSTOMID_LENGTH];			//Custom ID
+  char time_readable[CONVERTED_TIME_LENGTH];//human readable time (converted)
+  unsigned long value;        				//input value for calcdiff -> move to
   /* time_readable */
     void (*convertedTime)(struct ec_t *self);
     void (*printID)(struct ec_t *self, bool printtoterm, int opt);

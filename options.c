@@ -1,7 +1,7 @@
  /* option.c for Program options bc it is nice to have options
   * -h for help
   * -v for verbose
-  * -n remove CRLF line feeds to LF line feeds
+  * -n CRLF line feeds to LF line feeds
   * -c append ;;;;; to file for better viewing in a csv software (eg libreoffice)
   * Options are stored in one int: opt
   * bitfield: 0000 vhnc

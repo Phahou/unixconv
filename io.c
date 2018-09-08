@@ -9,6 +9,11 @@
  * 4. Helper functions
  */
 
+/*TODO:
+ * change the reading to read one line and use it in the whole loop instead of moving the pointer always forward
+ * remove magic numbers
+ */
+
 /* 1. Includes */
 #include<stdio.h>
 #include<string.h>
@@ -154,6 +159,7 @@ int reduce2importantdata(const char* filename, int opt){
       lp->ecp->value=strtoul(values,NULL,10);
       free(values);
       fprintf(lp->ecp->tmp,"%lu;",lp->ecp->value);
+      free(values);
     
 //check if fp is on the right pos
       fgetc(lp->fp); //skip "
@@ -165,18 +171,21 @@ int reduce2importantdata(const char* filename, int opt){
 
 //calc_diff
       int calc_status=lp->calc_diff(lp->ecp->value, lp);
-        if(calc_status==-10){
-          reachedEOF(lp, calc_status, opt);
-          break;
-        }
-        if(calc_status==-1){
-          reachedEOF(lp, calc_status, opt);
-          done_ids--;
-          break;
-        }
+
+      if(calc_status==-10){
+        reachedEOF(lp, calc_status, opt);
+        break;
+      }
+      if(calc_status==-1){
+        reachedEOF(lp, calc_status, opt);
+        done_ids--;
+        break;
+      }
+
       fprintf(lp->ecp->tmp,"%lu",lp->diff);
       
-      if( (lp->diff != 0) && (lp->diff != 1) ) fprintf(lp->ecp->tmp,";%lu",lp->diff);
+      if( (lp->diff != 0) &&
+    	  (lp->diff != 1) ) fprintf(lp->ecp->tmp,";%lu",lp->diff);
 
       fprintf(lp->ecp->tmp,"\n");
     //save line
