@@ -82,7 +82,6 @@ int main(int argc,const char** argv){
 
       //sort IDs in the right order
       idsort(argv[i], opt, lineno_, &MaxCharsLine);
-      //if (converted==0)
 	  //main purpose of the program
       int status=reduce2importantdata(argv[i], opt);
       if (status==-1) i--; //try again
@@ -134,13 +133,10 @@ int reduce2importantdata(const char* filename, int opt){
       fprintf(lp->ecp->tmp,"%c",fgetc(lp->fp) );
 
 //Rewriting IDs
-      //>implying the IDs are all 21 bytes long
       fgets(lp->ecp->id,21,lp->fp);				//id
-
 
 //compare IDs and print them in tmp file
       lp->ecp->printID(lp->ecp,false, opt);
-
       fprintf(lp->ecp->tmp,"%c",fgetc(lp->fp));     //Copy Values
 
       fgetc(lp->fp);                                //Without ""
@@ -163,21 +159,11 @@ int reduce2importantdata(const char* filename, int opt){
       fgetc(lp->fp); //skip "
       fgetc(lp->fp); //skip ;
 
-
-      /*if(ch==';') {
-    	fprintf(lp->ecp->tmp,"%c",ch);
-    	printf("file wont be corrupted");
-      }
-      else //perror("File will be corrupted...");
-*/
-
-
 //time
       lp->ecp->convertedTime(lp->ecp);
       fprintf(lp->ecp->tmp,"\"%s\";",lp->ecp->time_readable); //Print time
 
 //calc_diff
-
       int calc_status=lp->calc_diff(lp->ecp->value, lp);
         if(calc_status==-10){
           reachedEOF(lp, calc_status, opt);
@@ -203,11 +189,7 @@ int reduce2importantdata(const char* filename, int opt){
   free(lp);
   free(lp->ecp);
   rename("file.csv",filename);
-
-  //new
   remove("tmp0.csv");
-  //end new
-
   printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
   return 0;
 }

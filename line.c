@@ -16,11 +16,9 @@ typedef struct ln_t {
   int  (*getlnlen)(struct ln_t *self);
 } ln;
 
-
 int calcdiff(int row_a, ln* self);
 void skipline(ln *self);
 int getlinelength(ln *self);
-
 
 ln* new_ln(ec* energycounter){
   ln* obj = (ln*)malloc(sizeof(ln));
@@ -80,9 +78,6 @@ int calcdiff(int row_a, ln* self){
       if(ch==EOF) return -10;
     }
   }
-  //done fp is now on "
-  //let fp advance one char bc '"' - idk if fp++ would work
-  //EDIT: no it wouldnt
   fgetc(self->fp);
 
   fgetpos(self->fp,&row_below);
@@ -100,7 +95,6 @@ int calcdiff(int row_a, ln* self){
   }
 
   //atoi row_below
-
   unsigned long row_b=strtoul(energy_value,NULL,10);
   free(energy_value);
   fsetpos(self->fp,&fp_reset);

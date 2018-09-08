@@ -31,11 +31,6 @@ int options(int argc,const char** argv){
 }
 
 int alreadyconverted(const char* filename,FILE *fp, int opt){
-  /*if(!fp){ //fp check is already in windows.c implemented
-    perror(filename);
-
-    return -1;
-  }*/
   fpos_t pos;
   fgetpos(fp,&pos);
   char row[12];

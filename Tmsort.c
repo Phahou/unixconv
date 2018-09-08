@@ -6,8 +6,8 @@
 
 typedef struct Thm_t {
   unsigned int* lineno_;	//thread safe (Read-only)
-  char* line;				  //needs to be initialised
-  ln* ln_0;					  //everything related to a line
+  char* line;				//needs to be initialised
+  ln* ln_0;					//everything related to a line
   unsigned int i;			//for iteration
   fpos_t* pos; 				//for setting fp on the right line in the beginning
   char filename[50];
@@ -26,6 +26,7 @@ Tmst* new_Threadedmsort_argv_t(unsigned int* lineno_,unsigned int* highest,const
 	strcpy(obj->filename,filename);
 	return obj;
 }
+
 void del_Threadedmsort_argv_t(Tmst* obj){
   if(obj!=NULL){
     if(obj->line!=NULL){

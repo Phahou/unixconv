@@ -8,39 +8,16 @@ int idsort(const char* filename,int opt, unsigned int** lineno_, unsigned int* h
   ec* ec_0=new_ec(CID0); //changeable
   ln* ln_0=new_ln(ec_0);
   ln_0->fp=fopen(filename,"r");
-
-  //checking if already converted
-//  if(not_converted == 0)		return 0;    //skip function nothing to do here handled by io.c
-  //else if(not_converted == -1) return -1;    //Error while Opening stuff already handled by windows.c
-  //ok not converted already continue function
-
   FILE** tmp	 = (FILE**)malloc(sizeof(FILE*)*INSTALLED_IDS);
-//  char** del_list= (char**)calloc(sizeof(char*),INSTALLED_IDS);
-//  char* fl_reset = (char*)malloc(sizeof(char)*strlen(filename));
-//  char* fl		 = (char*)malloc(sizeof(char)*strlen(filename));
-//  strcpy(fl,filename);
-
 
   if(opt & 8) printf(BOLD WHT "Generating tmp files...\n" RESET);
 
   //initializing tmp files
   for(int i=0;i<INSTALLED_IDS;i++){
-/*    strcpy(fl_reset,fl);
-
-    char* i_=(char*)calloc(7,sizeof(char));
-    sprintf(i_,"_%d.tmp",i);
-	tmp[i]=fopen(strcat(fl,i_),"w+");
-    del_list[i]=(char*)calloc(sizeof(char),strlen(i_));
-    strcpy(del_list[i],fl);
-
-    free(i_);
-    strcpy(fl,fl_reset);
-    */
 	tmp[i]= tmpfile();
 	printf("Temporary file created\n");
   }
 
-//  free(fl);
   fpos_t* firstline=(fpos_t*)malloc(sizeof(fpos_t));
   ln_0->skipln(ln_0); //skip 1 lines
   fgetpos(ln_0->fp,firstline);
@@ -65,9 +42,6 @@ int idsort(const char* filename,int opt, unsigned int** lineno_, unsigned int* h
   }
   free(firstline);
 
-
-
-
   //merging ID files
   //cp first line
   line=(char*)realloc(line,sizeof(char)*(lineno_[k][0]+2));
@@ -81,9 +55,6 @@ int idsort(const char* filename,int opt, unsigned int** lineno_, unsigned int* h
   if(tmp0==NULL) perror("Error tmp0.csv: ");
   fprintf(tmp0,"%s",line);
   free(line);
-
-
-
 
   if(opt & 8){
     printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
@@ -132,11 +103,7 @@ int idsort(const char* filename,int opt, unsigned int** lineno_, unsigned int* h
     printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
     printf("...... Removing tmp files");
   }
-  //Removing files not needed anymore bc tmpfile()
-  /*for(int i=0;i<INSTALLED_IDS;i++){
-    remove(del_list[i]);
-    free(del_list[i]);
-  }*/
+
   if(opt & 8) printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
   k++;
   return 0;
@@ -168,33 +135,11 @@ void* msort(void* th_){
 	         exit(-45);
   }
 
-//filtering IDs in each tmp file
-  //unsigned int err_no_ids_found	= 0;
-  //unsigned int lim              = (INSTALLED_IDS*3)+1;
-  //bool not_called=true;
-
   while ((ch!=NULL)){
-	//warning
-	/*if((err_no_ids_found>lim)&&(not_called)){
-	  fprintf(stderr,
-	  "The string <%s> wasn't found in the file %s until line(%u) are you "
-	  "sure you entered the correct file or the correct ID in config.c?\n",
-	  th->ln_0->ecp->id,th->filename , (INSTALLED_IDS*3)+2);
-
-	  fprintf(stderr,
-	  "The program will continue to work but won't show this error for\n"
-	  "this tmpfile again.\n");
-
-	  not_called=false;
-	}*/
 	ch=fgets(th->line,th->lineno_[lineno]+2,th->ln_0->fp);
-
 	if(strstr(th->line,th->ln_0->ecp->id)!=NULL) {
 	  fprintf(th->ln_0->ecp->tmp,"%s",th->line);
-	  //err_no_ids_found=0;
-	}/* else {
-	  err_no_ids_found++;
-	}*/
+	}
 
     fflush(th->ln_0->ecp->tmp);
 	lineno++;

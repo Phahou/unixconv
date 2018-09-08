@@ -41,18 +41,15 @@ void del_ec(ec* ecp){
   }
 }
 
-
 /* epoch2human for time convertion */
 void epoch2human(ec *self){
-//  ec* self = (ec*)this;
   time_t now = atoi(self->time);
   struct tm  ts;
   ts = *localtime(&now);
-  strftime(self->time_readable, sizeof(self->time_readable), "%a %Y-%m-%d %H:%M:%S %Z", &ts);
+  strftime(self->time_readable, sizeof(self->time_readable), "%Y-%m-%d %H:%M:%S %Z", &ts);
 }
 
 void printid(ec *self, bool printtoterm, int opt){
-//  ec* self = (ec*)this;
   //ID names exchangeable with #define in options.c
   if(printtoterm==false){
     if(strcmp(self->id,ID0)==0){            //Device IDs from options.c
