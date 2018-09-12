@@ -5,20 +5,24 @@
 #include <time.h>
 #include <stdlib.h>
 #include "ec.c"
+#include <string.h>
 
 typedef struct ln_t {
   FILE *fp;
   ec* ecp;
   unsigned long diff;
+  char* line;
 
   int (*calc_diff)(int row_a,struct ln_t *self);
   void (*skipln)(struct ln_t *self);
   int  (*getlnlen)(struct ln_t *self);
+  void (*getln)(struct ln_t *self);
 } ln;
 
 int calcdiff(int row_a, ln* self);
 void skipline(ln *self);
 int getlinelength(ln *self);
+void getline(ln *self);
 
 ln* new_ln(ec* energycounter){
   ln* obj = (ln*)malloc(sizeof(ln));
@@ -26,6 +30,7 @@ ln* new_ln(ec* energycounter){
   obj->calc_diff = &calcdiff;
   obj->skipln = &skipline;
   obj->getlnlen= &getlinelength;
+  obj->getln=&getline;
   return obj;
 }
 
@@ -50,12 +55,68 @@ void skipline(ln *self){
 }
 
 int getlinelength(ln *self){
+  //TODO make unsigned int
   int i=0;
   fpos_t reset;
   fgetpos(self->fp,&reset);
   while (fgetc(self->fp)!='\n') i++;
   fsetpos(self->fp,&reset);
   return i;
+}
+
+char* rmdoublequotes_rec(unsigned int len,char* str){
+  if(str[len-1]=='"'){
+	str[len-1]='\0';
+	rmdoublequotes_rec(len-1,str);
+  }
+  if(str[0]=='"') return rmdoublequotes_rec(len,++str); //lol this works
+  else return str;
+}
+
+char* rmdoublequotes(char* token){
+  unsigned int len=strlen(token);
+  char* str=(char*)malloc(len*sizeof(char));
+  char* free_str=str;
+
+  //work with str
+  strcpy(str,token);
+  str=rmdoublequotes_rec(len,str);
+
+  //prep return
+  char* mystr=(char*)malloc(strlen(str)*sizeof(char));
+  strcpy(mystr,str);
+
+  //clean up and return
+  free(free_str);
+  return mystr;
+}
+
+void getline(ln *self){
+  //get line length
+  unsigned int len=self->getlnlen(self);
+  //alloc space
+  self->line=(char*)calloc(len,sizeof(char));
+  char* tmpstring=(char*)calloc(len,sizeof(char));
+  //get line in a string
+  fpos_t reset;
+  fgetpos(self->fp,&reset);
+  fgets(self->line,len,self->fp);
+  fsetpos(self->fp,&reset);
+  //tokenize
+  strcpy(tmpstring,self->line);
+
+  char* token;
+  token=strtok(self->line, ";");
+  strcpy(self->ecp->time,token);
+
+  token=strtok(NULL, ";");
+  strcpy(self->ecp->id, token);
+
+  token=strtok(NULL,";");
+  self->ecp->value=atol(rmdoublequotes(token));
+
+  strcpy(self->line,tmpstring);
+  free(tmpstring);
 }
 
 int calcdiff(int row_a, ln* self){

@@ -78,7 +78,7 @@ int main(int argc,const char** argv){
     int not_converted=alreadyconverted(argv[i], fp, opt);
     fclose(fp);
 
-    if(not_converted==2) fprintf(stderr,"Did you gave me the right input file?");
+    if(not_converted==2) fprintf(stderr,"Did you gave me the right input file?\n");
     if(not_converted){
       //converting windows CRLF into unix LF
       if (opt & 2){
@@ -109,23 +109,21 @@ int idhasntchanged(char* id){
 int reduce2importantdata(const char* filename, int opt){
   ln* lp =new_ln(new_ec(CID0));  //line-pointer
   lp->fp=fopen("tmp0.csv","r");
-  int status=alreadyconverted(filename, lp->fp, opt);
-
-  if(status == 0) {                   //skip function nothing to do here
-    fclose(lp->fp);
-    del_ln(lp);
-    return 0;
-  } else if(status == -1) return -1;    //Error while Opening stuff
+  if(lp->fp==NULL){		//Error while Opening stuff
+	del_ln(lp);
+    return -1;
+  }
 
   //okay the file isnt reduced yet...
   if(fileinit(lp,opt)==-1) return -1;
   //tmp file is open now
   fpos_t pos;
-
   fseek(lp->fp,0,SEEK_SET);
   printfirstline(lp);
+
   lp->diff=0;
-  if(opt & 8) printf("...... Reducing <%s>\r",filename);
+  int status;
+  if(opt & 8) printf("Reducing <%s>\n",filename);
   for(int done_ids=0;done_ids<=INSTALLED_IDS;done_ids++){
     while(1){
       status=isequalcheck(lp, &pos);
@@ -159,7 +157,6 @@ int reduce2importantdata(const char* filename, int opt){
       lp->ecp->value=strtoul(values,NULL,10);
       free(values);
       fprintf(lp->ecp->tmp,"%lu;",lp->ecp->value);
-      free(values);
     
 //check if fp is on the right pos
       fgetc(lp->fp); //skip "
@@ -199,7 +196,7 @@ int reduce2importantdata(const char* filename, int opt){
   free(lp->ecp);
   rename("file.csv",filename);
   remove("tmp0.csv");
-  printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
+  printf(BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
   return 0;
 }
 
@@ -237,12 +234,12 @@ int fileinit(ln* lpr, int opt){
 
 void reachedEOF(ln* lpr, int status, int opt){
   if(opt & 8){
-    printf("Reached End of Input for <");
-    lpr->ecp->printID(lpr->ecp,true, opt);
-    printf(">\n");
+    printf("Reached End of Input for <%s>\n",lpr->ecp->CustomID);
+//    lpr->ecp->printID(lpr->ecp,true, opt);
+//    printf(">\n");
   }
   //printing a 0 for diff bc we have only 1 value
-  if(status==-1) fprintf(lpr->ecp->tmp,"%u\n",0);
+  if(status==-1) fprintf(lpr->ecp->tmp,"0\n");
   fflush(lpr->ecp->tmp);
   fflush(lpr->fp);
 }

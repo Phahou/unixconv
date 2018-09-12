@@ -15,7 +15,6 @@ int idsort(const char* filename,int opt, unsigned int** lineno_, unsigned int* h
   //initializing tmp files
   for(int i=0;i<INSTALLED_IDS;i++){
 	tmp[i]= tmpfile();
-	printf("Temporary file created\n");
   }
 
   fpos_t* firstline=(fpos_t*)malloc(sizeof(fpos_t));
