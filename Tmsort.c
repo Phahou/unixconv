@@ -10,11 +10,14 @@ typedef struct Thm_t {
 	ln* ln_0;					//everything related to a line
 	unsigned int i;				//for iteration
 	fpos_t* pos;				//for setting fp on the right line in the beginning
-	char filename[200];
+	char filename[200];			//TODO: needs to be replaced with sth out of list.c
 }Tmst;
 
 Tmst* new_Threadedmsort_argv_t(
-unsigned short int* lineno_,unsigned short int* highest,const char* filename,FILE *tmp_,
+unsigned short int* lineno_,
+unsigned short int* highest,
+const char* filename,
+FILE *tmp_,
 unsigned int i_, fpos_t* pos_) {
 	Tmst* obj=(Tmst*)malloc(sizeof(Tmst));
 	obj->line=(char*)malloc(*highest*sizeof(char));

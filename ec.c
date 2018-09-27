@@ -25,6 +25,8 @@ typedef struct ec_t {
 void epoch2human(ec *self);
 void printid_new(ec *self, bool c_option_set, int id);
 void setid(ec* self, int id);
+
+
 ec* new_ec(char* customid){
 	ec* obj = (ec*)calloc(1,sizeof(ec));
 	if(customid){
@@ -77,37 +79,37 @@ void printid_new(ec *self, bool c_option_set, int id){
 	if(c_option_set){ //; wanted
 		switch(id) {
 			case 0: fprintf(self->tmp,"%s",CID0);
-				break;
+					break;
 			case 1: fprintf(self->tmp,";;;;;;%s",CID1);
-				break;
+					break;
 			case 2: fprintf(self->tmp,";;;;;;;;;;;;%s",CID2);
-				break;
+					break;
 			case 3: fprintf(self->tmp,";;;;;;;;;;;;;;;;;;%s",CID3);
-				break;
+					break;
 			case 4: fprintf(self->tmp,";;;;;;;;;;;;;;;;;;;;;;;;%s",CID4);
-				break;
+					break;
 			case 5: fprintf(self->tmp,";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;%s",CID5);
-				break;
+					break;
 			case 6: fprintf(self->tmp,";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;%s",CID6);
-				break;
+					break;
 			case 7: fprintf(self->tmp,";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;%s",CID7);
 		}
 	} else {		//; not wanted
 		switch(id) {
 			case 0: fprintf(self->tmp,"%s",CID0);
-				break;
+					break;
 			case 1: fprintf(self->tmp,"%s",CID1);
-				break;
+					break;
 			case 2: fprintf(self->tmp,"%s",CID2);
-				break;
+					break;
 			case 3: fprintf(self->tmp,"%s",CID3);
-				break;
+					break;
 			case 4: fprintf(self->tmp,"%s",CID4);
-				break;
+					break;
 			case 5: fprintf(self->tmp,"%s",CID5);
-				break;
+					break;
 			case 6: fprintf(self->tmp,"%s",CID6);
-				break;
+					break;
 			case 7: fprintf(self->tmp,"%s",CID7);
 		}
 	}
