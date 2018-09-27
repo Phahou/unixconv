@@ -22,23 +22,25 @@ typedef struct ln_t {
 int calcdiff(int row_a, ln* self);
 void skipline(ln *self);
 int getlinelength(ln *self);
-void getline(ln *self);
+void _getline(ln *self);
 
 ln* new_ln(ec* energycounter){
   ln* obj = (ln*)malloc(sizeof(ln));
-  obj->ecp = energycounter;
+  if(energycounter){
+    obj->ecp = energycounter;
+  }
   obj->calc_diff = &calcdiff;
   obj->skipln = &skipline;
   obj->getlnlen= &getlinelength;
-  obj->getln=&getline;
+  obj->getln=&_getline;
   return obj;
 }
 
 void del_ln(ln* obj){
-  if(obj->ecp!=NULL){
+  if(obj->ecp){
     del_ec(obj->ecp);
   }
-  if(obj!=NULL){
+  if(obj){
 	free(obj);
   }
 }
@@ -48,7 +50,7 @@ void skipline(ln *self){
   while(ch!='\n'){ //skip line
     ch=fgetc(self->fp);
     if(ch==EOF){
-      perror("EOF ERROR");
+    //  perror("EOF ERROR");
       break;
     }
   }
@@ -64,6 +66,8 @@ int getlinelength(ln *self){
   return i;
 }
 
+
+//newstuff
 char* rmdoublequotes_rec(unsigned int len,char* str){
   if(str[len-1]=='"'){
 	str[len-1]='\0';
@@ -91,7 +95,7 @@ char* rmdoublequotes(char* token){
   return mystr;
 }
 
-void getline(ln *self){
+void _getline(ln *self){
   //get line length
   unsigned int len=self->getlnlen(self);
   //alloc space
@@ -118,6 +122,8 @@ void getline(ln *self){
   strcpy(self->line,tmpstring);
   free(tmpstring);
 }
+//newstuff
+
 
 int calcdiff(int row_a, ln* self){
   fpos_t row_below,fp_reset;
@@ -149,7 +155,7 @@ int calcdiff(int row_a, ln* self){
     ch=fgetc(self->fp);
     if(ch==EOF) return -10;
   }
-  char* energy_value=(char*)malloc(sizeof(char)*i);
+  char energy_value=(char*)calloc(sizeof(char),i+1);
   fsetpos(self->fp,&row_below);
   for(unsigned long j=0;j<=i;j++){
     energy_value[j]=fgetc(self->fp);

@@ -19,17 +19,18 @@
 #include<string.h>
 #include<stdlib.h>
 #include<stdbool.h>
-#include<sys/stat.h>  /* needed for recognizing if input is a dir */
-#include<pthread.h>   /* for multithreading in idsort()           */
+#include<sys/stat.h>/* needed for recognizing if input is a dir */
+#include<pthread.h> /* for multithreading in idsort()           */
 
 /* Own Includes: */
-#include"line.c"      /* data-structures holding important infos  */
-#include"options.c"   /* for setting eg -r for only reducing      */
-#include"config.c"    /* Custom Config for defining ID Names etc. */
-#include"idsort.c"    /* for sorting IDs in the right order       */
-                      /* -> after ID1 is ID2 in the next line     */
-                      /*    and so on                             */
-#include"windows.c"   /* converts windows CRLF into unix LF       */
+#include"line.c"    /* data-structures holding important infos  */
+#include"options.c" /* for setting eg -r for only reducing      */
+#include"config.c"  /* Custom Config for defining ID Names etc. */
+#include"idsort.c"  /* for sorting IDs in the right order       */
+                    /* -> after ID1 is ID2 in the next line     */
+                    /*    and so on                             */
+#include"windows.c"	/* converts windows CRLF into unix LF       */
+#include"dirs.c"	/* for checking folders recursively			*/
 
 struct stat sb; //for checking if input is a dir
 
@@ -40,63 +41,79 @@ int isequalcheck(ln* lpr, fpos_t *pos);
 int fileinit(ln* lpr, int opt);
 void reachedEOF(ln* lpr, int status, int opt);
 void printfirstline(ln* lpr);
-void printhelp(int opt, int argc);
+bool printhelp(int opt, int argc);
 
 /* 3. main function */
 
-int main(int argc,const char** argv){
+int main(int argc,char** argv){
   int opt=options(argc,argv);
-  printhelp(opt, argc);			// help Message
 
-  unsigned int MaxCharsLine=0, k=0, filesum=0;
-
-  for (int i=1;i<argc;i++){
-	  if (argv[i][0]!='-') filesum++;
+  if (printhelp(opt, argc)){ //yes functioncalls in if brackets do work
+    fprintf(stderr, "Zu wenig Argumente!\n");
+    exit(0);			// help Message
   }
-  if(filesum==0) return 0;
+
+  unsigned short int MaxCharsLine=0, inputed_files=0;
+
+  for (int i=1;i<argc;i++){ //check if file exists and TODO: isnt random garbage
+	  if (argv[i][0]!='-') inputed_files++;
+  }
+  if(inputed_files==0){
+    fprintf(stderr,"Keine Dateien ausgewählt!\n");
+    return 0;
+  }
 
   //alloc an array for every input file
-  unsigned int** lineno_=(unsigned int**)malloc(filesum*sizeof(unsigned int*));
-  for(unsigned int i=0;i<filesum;i++){
-    lineno_[i]=(unsigned int*)malloc((MAX_LINE_NUMBERS_PER_DEVICE*INSTALLED_IDS)*sizeof(unsigned int));
-  }
+  unsigned short int lineno_[MAX_LINE_NUMBERS_PER_DEVICE*INSTALLED_IDS]= { 0 } ;
   //done
 
-  for(unsigned int i=1;i<=filesum+1;i++){
-    if(argv[i][0]=='-') continue;  //skipping options
-    if(filesum<=k) break;
-    else k++;
+  int k=0; //variable for checking if sth went acording to plan
 
-    //check if input is dir
-    if (stat(argv[i], &sb) == 0 && S_ISDIR(sb.st_mode)){
-      fprintf(stderr,"%s is a directory\n",argv[i]);
-      continue;
-    }
+  for(int i=1;i<argc;i++){
+    if(argv[i][0]=='-') continue;  //skipping options bug
+    if(argc<=k) break;
+    else k++; 
+    /* 
+     * checks if the parameter is a directory
+     *   returns a *list* of .csv-files in the directory if so
+     *   returns *NULL* if not
+     * files in subdirectories will be added to the list
+     */
+	if(isdir(argv[i])) {
+			continue;
+			/*if(opt & 32){
+				files=dirs(argv[i]);
+			}
+			else if(opt & 8) 
+					printf("Skipping %s: Directory\n",argv[i]);*/
+	}
 
     //check if it is already converted 1 = no 0 = yes
     FILE* fp=fopen(argv[i],"r");
     int not_converted=alreadyconverted(argv[i], fp, opt);
     fclose(fp);
+    
 
-    if(not_converted==2) fprintf(stderr,"Did you gave me the right input file?\n");
+    if(not_converted==2) {
+      fprintf(stderr,"Something seems wrong with this file: %s\nI will skip it.",argv[i]);
+      continue;
+    }
     if(not_converted){
       //converting windows CRLF into unix LF
       if (opt & 2){
         rmwinCRLF(argv[i], lineno_, &MaxCharsLine);
       }
-
       //sort IDs in the right order
       idsort(argv[i], opt, lineno_, &MaxCharsLine);
-	  //main purpose of the program
+      //main purpose of the program
       int status=reduce2importantdata(argv[i], opt);
+	 // free(lineno_);
       if (status==-1) i--; //try again
     }
-
-    if ( (opt & 8) && (NULL != fopen("tm0.csv","r")) ){
+    if ( (opt & 8) && (NULL != fopen("tmp0.csv","r")) ){
       printf("Cleaning up tmp0.csv\n");
       remove("tmp0.csv");
     }
-
   }
   return 0;
 }
@@ -109,8 +126,8 @@ int idhasntchanged(char* id){
 int reduce2importantdata(const char* filename, int opt){
   ln* lp =new_ln(new_ec(CID0));  //line-pointer
   lp->fp=fopen("tmp0.csv","r");
-  if(lp->fp==NULL){		//Error while Opening stuff
-	del_ln(lp);
+  if(!lp->fp){		//Error while Opening stuff
+    del_ln(lp);
     return -1;
   }
 
@@ -139,7 +156,8 @@ int reduce2importantdata(const char* filename, int opt){
       fgets(lp->ecp->id,21,lp->fp);				//id
 
 //compare IDs and print them in tmp file
-      lp->ecp->printID(lp->ecp,false, opt);
+      lp->ecp->printID(lp->ecp, opt & 1, done_ids-1);
+	  if(opt & 8) lp->ecp->setID(lp->ecp,done_ids-1);
       fprintf(lp->ecp->tmp,"%c",fgetc(lp->fp));     //Copy Values
 
       fgetc(lp->fp);                                //Without ""
@@ -150,9 +168,9 @@ int reduce2importantdata(const char* filename, int opt){
       fsetpos(lp->fp,&pos);
 
 //data conversion -> get value & print value
-      char* values=(char*)malloc(sizeof(char)*i);
+      char* values=(char*)calloc(sizeof(char),i);
       for(int j=0;j<i;j++){
-        values[j]=fgetc(lp->fp);
+		  values[j]=fgetc(lp->fp);
       }
       lp->ecp->value=strtoul(values,NULL,10);
       free(values);
@@ -192,8 +210,7 @@ int reduce2importantdata(const char* filename, int opt){
   }
   fclose(lp->ecp->tmp);
   fclose(lp->fp);
-  free(lp);
-  free(lp->ecp);
+  del_ln(lp);
   rename("file.csv",filename);
   remove("tmp0.csv");
   printf(BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
@@ -214,7 +231,7 @@ int isequalcheck(ln* lpr, fpos_t *pos){
     char* idline=(char*)malloc(sizeof(char)*i);
     fgets(idline,i,lpr->fp);
     fprintf(lpr->ecp->tmp,"%s\n",idline);
-    free(idline);
+	free(idline);
     return -1;
   } else if (isequal=='\n') return -2;
   fsetpos(lpr->fp,pos);
@@ -224,7 +241,7 @@ int isequalcheck(ln* lpr, fpos_t *pos){
 int fileinit(ln* lpr, int opt){
   if(opt & 8) printf("...... Opening files for conversion\r");
   lpr->ecp->tmp=fopen("file.csv","w+");
-  if(lpr->ecp->tmp == NULL){
+  if(!lpr->ecp->tmp){
     perror("\nError file.csv:");
     return -1;
   }
@@ -235,8 +252,6 @@ int fileinit(ln* lpr, int opt){
 void reachedEOF(ln* lpr, int status, int opt){
   if(opt & 8){
     printf("Reached End of Input for <%s>\n",lpr->ecp->CustomID);
-//    lpr->ecp->printID(lpr->ecp,true, opt);
-//    printf(">\n");
   }
   //printing a 0 for diff bc we have only 1 value
   if(status==-1) fprintf(lpr->ecp->tmp,"0\n");
@@ -251,32 +266,35 @@ void printfirstline(ln* lpr){
   fflush(lpr->ecp->tmp);
 }
 
-void printhelp(int opt, int argc){
+bool printhelp(int opt, int argc){
+  bool printed=false;
   if((opt & 4)||(argc==1)){
-  printf(BOLD WHT
-         "Unixconv - A Epoch to human-readable converter 1.1\n\n" RESET);
-  	  	  /* empty line */
-  printf("Verwendung: unixconv [Argumente] [Datei ..]\n\n"
-          /* empty line */
-		 "  Bitte Aufpassen: Die alten Dateien werden überschrieben, jedoch\n"
-		 "                   werden die Reste der Ursprungsdatei angehängt.(fixed)™\n\n");
+    printed=true;
+    printf(BOLD WHT
+    "Unixconv - A Epoch to human-readable converter 1.1\n\n" RESET
 
-  printf("  Das Programm wird benutzt um die Rohdaten des MUCEasy™\n"
-		     "  aufzubereiten & dabei zu verkleinern.\n\n");
+    "Verwendung: unixconv [Argumente] [Datei ..]\n\n"
 
-  printf(BOLD WHT "Argumente:\n\n" RESET);
+    "  Bitte Aufpassen: Die alten Dateien werden überschrieben, jedoch\n"
+		"                   werden die Reste der Ursprungsdatei angehängt.(fixed)™\n\n"
 
-  printf(
-     "  -v   gesprächig (Es wird auf der Konsole ausgegeben was gerade passiert)\n"
-		 "  -h   zeigt diese Hilfe an\n\n"
-		  /* empty line */
-		 "  -n   wandelt CRLF-Zeilenumbrüche(DOS) in LF Zeilenumbrüche(Unix) um.\n"
-		 "       Diese Option wird gebraucht, wenn DOS-Dateien vorliegen. Es ist\n"
-         "       eine gute Idee es allgemein mitzuübergeben.\n\n"
+    "  Das Programm wird benutzt um die Rohdaten des MUCEasy™\n"
+		"  aufzubereiten & dabei zu verkleinern.\n\n" BOLD WHT
 
-         "  -c   sorgt dafür das in der Ausgabedatei mehrere Semikolons (;) sind\n"
-         "       um eine bessere Ansicht in Office Programmen zu haben wie bspw.\n"
-         "       Libreoffice. (Sinnvoll, falls man mit den Daten direkt arbeiten\n"
-         "       will, statt sie weiterverarbeiten zu lassen.\n\n");
+    "Argumente:\n\n" RESET
+
+    "  -v   gesprächig (Es wird auf der Konsole ausgegeben was gerade passiert)\n"
+    "  -h   zeigt diese Hilfe an\n\n"
+
+    "  -n   wandelt CRLF-Zeilenumbrüche(DOS) in LF Zeilenumbrüche(Unix) um.\n"
+    "       Diese Option wird gebraucht, wenn DOS-Dateien vorliegen. Es ist\n"
+    "       eine gute Idee es allgemein mitzuübergeben.\n\n"
+
+    "  -c   sorgt dafür das in der Ausgabedatei mehrere Semikolons (;) sind\n"
+    "       um eine bessere Ansicht in Office Programmen zu haben wie bspw.\n"
+    "       Libreoffice. (Sinnvoll, falls man mit den Daten direkt arbeiten\n"
+    "       will, statt sie weiterverarbeiten zu lassen.\n\n");
+
   }
+  return printed;
 }

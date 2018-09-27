@@ -4,127 +4,111 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
-#include <string.h>
 #include "config.c"
 #include <stdbool.h>
 
 struct tm;
 
 typedef struct ec_t {
-  FILE *tmp;                  				//temporary filepointer
-  char time[EPOCH_TIME_LENGTH];             //input time
-  char id[TIP_INPUT_LENGTH];  				//input ID (TIP...)
-  char CustomID[CUSTOMID_LENGTH];			//Custom ID
-  char time_readable[CONVERTED_TIME_LENGTH];//human readable time (converted)
-  unsigned long value;        				//input value for calcdiff -> move to
-  /* time_readable */
-    void (*convertedTime)(struct ec_t *self);
-    void (*printID)(struct ec_t *self, bool printtoterm, int opt);
+	FILE *tmp;									//temporary filepointer
+	char time[EPOCH_TIME_LENGTH];				//input time
+	char id[TIP_INPUT_LENGTH];					//input ID (TIP...)
+	char CustomID[CUSTOMID_LENGTH];				//Custom ID
+	char time_readable[CONVERTED_TIME_LENGTH];	//human readable time (converted)
+	unsigned long value;						//input value for calcdiff -> move to
+	/* time_readable */
+		void (*convertedTime)(struct ec_t *self);
+		void (*printID)(struct ec_t *self, bool c_option_set, int id);
+		void (*setID)(struct ec_t *self, int id);
 }ec;
 
 void epoch2human(ec *self);
-void printid(ec *self, bool printtoterm, int opt);
-
+void printid_new(ec *self, bool c_option_set, int id);
+void setid(ec* self, int id);
 ec* new_ec(char* customid){
-  ec* obj = (ec*)calloc(1,sizeof(ec));
-  if(customid!=NULL){
-    strcpy(obj->CustomID,customid);
-  }
-  obj->convertedTime = &epoch2human;
-  obj->printID = &printid;
-  return obj;
+	ec* obj = (ec*)calloc(1,sizeof(ec));
+	if(customid){
+		strcpy(obj->CustomID,customid);
+	}
+	obj->convertedTime = &epoch2human;
+	obj->printID = &printid_new;
+	obj->setID   = &setid;
+	return obj;
 }
 
 void del_ec(ec* ecp){
-  if(ecp!=NULL){
-    free(ecp);
-  }
+	if(ecp){
+		free(ecp);
+	}
 }
 
 /* epoch2human for time convertion */
 void epoch2human(ec *self){
-  time_t now = atoi(self->time);
-  struct tm  ts;
-  ts = *localtime(&now);
-  strftime(self->time_readable, sizeof(self->time_readable), "%Y-%m-%d %H:%M:%S %Z", &ts);
+	time_t now = atoi(self->time);
+	struct tm	ts;
+	ts = *localtime(&now);
+	strftime(self->time_readable,
+			sizeof(self->time_readable),
+			"%Y-%m-%d %H:%M:%S %Z", &ts);
 }
 
-void printid(ec *self, bool printtoterm, int opt){
-  //ID names exchangeable with #define in options.c
-  if(printtoterm==false){
-    if(strcmp(self->id,ID0)==0){            //Device IDs from options.c
-      strcpy(self->CustomID,CID0);
-      fprintf(self->tmp,"%s",self->CustomID);     //Custom names
-    }
-    if(strcmp(self->id,ID1)==0){
-      strcpy(self->CustomID,CID1);
-      if (opt & 1) fprintf(self->tmp,";;;;;;");   //idiot-proof :P
-      fprintf(self->tmp,"%s",self->CustomID);     //Wish of the customer
-    }
-    if(strcmp(self->id,ID2)==0){
-      strcpy(self->CustomID,CID2);
-      if (opt & 1) fprintf(self->tmp,";;;;;;;;;;;;");
-      fprintf(self->tmp,"%s",self->CustomID);
-    }
-    if(strcmp(self->id,ID3)==0){
-      strcpy(self->CustomID,CID3);
-      if (opt & 1) fprintf(self->tmp,";;;;;;;;;;;;;;;;;;");
-      fprintf(self->tmp,"%s",self->CustomID);
-    }
-    if(strcmp(self->id,ID4)==0){
-      strcpy(self->CustomID,CID4);
-      if (opt & 1) fprintf(self->tmp,";;;;;;;;;;;;;;;;;;;;;;;;");
-      fprintf(self->tmp,"%s",self->CustomID);
-    }
-    if(strcmp(self->id,ID5)==0){
-      strcpy(self->CustomID,CID5);
-      if (opt & 1) fprintf(self->tmp,";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;");
-      fprintf(self->tmp,"%s",self->CustomID);
-    }
-    if(strcmp(self->id,ID6)==0){
-      strcpy(self->CustomID,CID6);
-      if (opt & 1) fprintf(self->tmp,";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;");
-      fprintf(self->tmp,"%s",self->CustomID);
-    }
-    if(strcmp(self->id,ID7)==0){
-      strcpy(self->CustomID,CID7);
-      if (opt & 1) fprintf(self->tmp,";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;");
-      fprintf(self->tmp,"%s",self->CustomID);
-    }
-  } else {
-    //Device IDs from the options.c with custom names (CID)
-	if(strcmp(self->id,ID0)==0) {
-	  strcpy(self->CustomID,CID0);
-	  printf("%s",CID0);
+void setid(ec* self, int id){
+	switch(id){
+		case 0: strcpy(self->CustomID,CID0);
+				break;
+		case 1: strcpy(self->CustomID,CID1);
+        		break;
+		case 2: strcpy(self->CustomID,CID2);
+        		break;
+		case 3: strcpy(self->CustomID,CID3);
+				break;
+		case 4: strcpy(self->CustomID,CID4);
+				break;
+		case 5: strcpy(self->CustomID,CID5);
+        		break;
+		case 6: strcpy(self->CustomID,CID6);
+        		break;
+		case 7: strcpy(self->CustomID,CID7);
 	}
-	if(strcmp(self->id,ID1)==0) {
-	  strcpy(self->CustomID,CID0);
-	  printf("%s",CID0);
-	}
-	if(strcmp(self->id,ID2)==0) {
-      strcpy(self->CustomID,CID0);
-	  printf("%s",CID0);
-	}
-	if(strcmp(self->id,ID3)==0) {
-	  strcpy(self->CustomID,CID0);
-	  printf("%s",CID0);
-	}
-	if(strcmp(self->id,ID4)==0) {
-	  strcpy(self->CustomID,CID0);
-	  printf("%s",CID0);
-	}
-	if(strcmp(self->id,ID5)==0) {
-	  strcpy(self->CustomID,CID0);
-	  printf("%s",CID0);
-	}
-	if(strcmp(self->id,ID6)==0) {
-	  strcpy(self->CustomID,CID0);
-	  printf("%s",CID0);
-	}
-	if(strcmp(self->id,ID7)==0) {
-	  strcpy(self->CustomID,CID0);
-	  printf("%s",CID0);
-	}
+}
 
-  }
+void printid_new(ec *self, bool c_option_set, int id){
+	//ID names exchangeable with #define in options.c
+	if(c_option_set){ //; wanted
+		switch(id) {
+			case 0: fprintf(self->tmp,"%s",CID0);
+				break;
+			case 1: fprintf(self->tmp,";;;;;;%s",CID1);
+				break;
+			case 2: fprintf(self->tmp,";;;;;;;;;;;;%s",CID2);
+				break;
+			case 3: fprintf(self->tmp,";;;;;;;;;;;;;;;;;;%s",CID3);
+				break;
+			case 4: fprintf(self->tmp,";;;;;;;;;;;;;;;;;;;;;;;;%s",CID4);
+				break;
+			case 5: fprintf(self->tmp,";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;%s",CID5);
+				break;
+			case 6: fprintf(self->tmp,";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;%s",CID6);
+				break;
+			case 7: fprintf(self->tmp,";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;%s",CID7);
+		}
+	} else {		//; not wanted
+		switch(id) {
+			case 0: fprintf(self->tmp,"%s",CID0);
+				break;
+			case 1: fprintf(self->tmp,"%s",CID1);
+				break;
+			case 2: fprintf(self->tmp,"%s",CID2);
+				break;
+			case 3: fprintf(self->tmp,"%s",CID3);
+				break;
+			case 4: fprintf(self->tmp,"%s",CID4);
+				break;
+			case 5: fprintf(self->tmp,"%s",CID5);
+				break;
+			case 6: fprintf(self->tmp,"%s",CID6);
+				break;
+			case 7: fprintf(self->tmp,"%s",CID7);
+		}
+	}
 }
