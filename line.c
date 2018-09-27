@@ -50,7 +50,6 @@ void skipline(ln *self){
   while(ch!='\n'){ //skip line
     ch=fgetc(self->fp);
     if(ch==EOF){
-    //  perror("EOF ERROR");
       break;
     }
   }
@@ -155,7 +154,7 @@ int calcdiff(int row_a, ln* self){
     ch=fgetc(self->fp);
     if(ch==EOF) return -10;
   }
-  char energy_value=(char*)calloc(sizeof(char),i+1);
+  char* energy_value=(char*)calloc(sizeof(char),i+1);
   fsetpos(self->fp,&row_below);
   for(unsigned long j=0;j<=i;j++){
     energy_value[j]=fgetc(self->fp);
