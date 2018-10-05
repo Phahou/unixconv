@@ -11,25 +11,16 @@ bool isdir(char* file);
 list* checkdirs( char const * const path, list* files, char* pattern);
 list* checkdirs_r(char* path, char* pattern); //calls checkdirs with extras
 
-/* main */
-int dirs(int argc,char** argv) {
-	int opt=0;	//for options sake
-	if(argv[1][0]=='-') {
-		if(argv[1][1]=='r') {
-			opt=opt | 16;
-		}
-	}
-	if(argc<3) {
-		fprintf(stderr,"Too few arguments\n");
-		exit(2);
-	}
-	list* path=checkdirs_r(argv[2], ".csv");
-
-	bubbleSort(path);
-	printall(path);
-	printf("del:\n\n");
-	del_complete_list(path);
-	return 0;
+/*
+ * dir: directory to search
+ * sort: sort list with bubblesort?
+ * pattern: file ending to search for
+ * what it doesnt do: open the files it returns for sorting the false postives out
+*/
+list* dirs(char* dir, bool sort, char* pattern) {
+    list* path=checkdirs_r(dir, pattern);
+    if (sort) bubbleSort(path);
+    return path;
 }
 
 /* dir functions */
@@ -48,7 +39,9 @@ list* checkdirs_r(char* path, char* pattern){ //path is a folder
 	if(isdir(path)){
 		list* dir=(list*)calloc(sizeof(list),1);
 		checkdirs(path,dir,pattern);
-		return dir;
+        list* p=dir->next;
+        del_list(dir);
+        return p;
 	}
 	return NULL;
 }

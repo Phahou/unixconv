@@ -32,85 +32,61 @@
 #include"windows.c"	/* converts windows CRLF into unix LF		*/
 #include"dirs.c"	/* for checking folders recursively			*/
 
-struct stat sb; //for checking if input is a dir
-
 /* 2. function definitions */
 int idhasntchanged(char* id);
-int reduce2importantdata(const char* filename, int opt);
+int reducedata(const char* filename, int opt);
 int isequalcheck(ln* lpr, fpos_t *pos);
 int fileinit(ln* lpr, int opt);
 void reachedEOF(ln* lpr, int status, int opt);
 void printfirstline(ln* lpr);
 bool printhelp(int opt, int argc);
+list** p_argv(int argc,char** argv,int opt);
 
 /* 3. main function */
-
 int main(int argc,char** argv){
-	int opt=options(argc,argv);
+    int opt=p_options(argc,argv);
+    list** files=p_argv(argc,argv,opt);
+    unsigned short int MaxCharsLine=0, inputed_files=0;
+    unsigned short int lineno_[MAX_LINE_NUMBERS_PER_DEVICE*INSTALLED_IDS]= { 0 };
 
-	if (printhelp(opt, argc)){
-		fprintf(stderr, "Zu wenig Argumente!\n");
-		exit(0);	// help Message
-	}
+    for (int i=1;i<argc;i++) if (argv[i][0]!='-') inputed_files++;
 
-	unsigned short int MaxCharsLine=0, inputed_files=0;
-	unsigned short int lineno_[MAX_LINE_NUMBERS_PER_DEVICE*INSTALLED_IDS]= { 0 };
-	int k=0; //variable for checking if sth went acording to plan
-
-	for (int i=1;i<argc;i++){ //check if file exists and TODO: isnt random garbage
-		if (argv[i][0]!='-') inputed_files++;
-	}
-	if(inputed_files==0){
-		fprintf(stderr,"Keine Dateien ausgewählt!\n");
-		return 0;
-	}
-
-
-	for(int i=1;i<argc;i++){
-		if(argv[i][0]=='-') continue;	//skipping options bug
-		if(argc<=k) break;
-		else k++; 
-		/* 
-		 * checks if the parameter is a directory
-		 *	 returns a *list* of .csv-files in the directory if so
-		 *	 returns *NULL* if not
-		 * files in subdirectories will be added to the list
-		 */
-		if(isdir(argv[i])) {
-			continue;
-			/*if(opt & 32){
-				files=dirs(argv[i]);
-			}
-			else if(opt & 8) 
-					printf("Skipping %s: Directory\n",argv[i]);*/
-		}
-
+    for(int i=0;i<inputed_files;i++) {
 		//check if it is already converted 1 = no 0 = yes
-		FILE* fp=fopen(argv[i],"r");
-		int not_converted=alreadyconverted(argv[i], fp, opt);
-		fclose(fp);
-		
+        bool triedagain=false;
+        list* curr_pos=files[i];
+        while(curr_pos){
+            FILE* fp=fopen(curr_pos->str,"r");
+            int not_converted=alreadyconverted(curr_pos->str, fp, opt);
+            fclose(fp);
+            switch (not_converted) {
+                case 0:
+                    /*do nothing because it is already converted*/
+                    break;
+                case 1:
+                    if(opt & 2) rmwinCRLF(curr_pos->str, lineno_, &MaxCharsLine); //converting windows CRLF into unix LF
+                    idsort(curr_pos->str, opt, lineno_, &MaxCharsLine); //sort IDs in the right order
+                    if ( (reducedata(curr_pos->str, opt)==-1)&&(!triedagain) ){
+                        i--; //try again (error while opening stuff)
+                        triedagain=true;
+                        /*break out of the loop and try again (same head in list )*/
+                        goto TRYAGAIN;
+                    }
+                    /* break bc if it sucessfully reducesdata it will go on without the goto */
+                    break;
+                case 2:
+                    fprintf(stderr, BOLD WHT "(Skip)" RESET "Something seems wrong with this file: %s\n",(char*)curr_pos->str);
+                    break;
+            }
+            curr_pos=curr_pos->next;
+        }
+        TRYAGAIN: ;
 
-		if(not_converted==2) {
-			fprintf(stderr,"Something seems wrong with this file: %s\nI will skip it.",argv[i]);
-			continue;
-		}
-		if(not_converted){
-			//converting windows CRLF into unix LF
-			if (opt & 2){
-				rmwinCRLF(argv[i], lineno_, &MaxCharsLine);
-			}
-			//sort IDs in the right order
-			idsort(argv[i], opt, lineno_, &MaxCharsLine);
-			//main purpose of the program
-			int status=reduce2importantdata(argv[i], opt);
-			if (status==-1) i--; //try again
-		}
-		if ( (opt & 8) && (NULL != fopen("tmp0.csv","r")) ){
-			printf("Cleaning up tmp0.csv\n");
-			remove("tmp0.csv");
-		}
-	}
+    }
+    if (fopen("tmp0.csv","r")) {
+        if(opt & 8) printf("Cleaning up tmp0.csv\n");
+        remove("tmp0.csv");
+    }
 	return 0;
 }
 
@@ -119,7 +95,7 @@ int idhasntchanged(char* id){
 	return strncmp(id,"====",4);
 }
 
-int reduce2importantdata(const char* filename, int opt){
+int reducedata(const char* filename, int opt){
 	ln* lp =new_ln(new_ec(CID0));	//line-pointer
 	lp->fp=fopen("tmp0.csv","r");
 	if(!lp->fp){		//Error while Opening stuff
@@ -262,34 +238,31 @@ void printfirstline(ln* lpr){
 	fflush(lpr->ecp->tmp);
 }
 
-bool printhelp(int opt, int argc){
-	bool printed=false;
-	if((opt & 4)||(argc==1)){
-		printed=true;
-		printf(BOLD WHT
-		"Unixconv - A Epoch to human-readable converter 1.1\n\n" RESET
-
-		"Verwendung: unixconv [Argumente] [Datei ..]\n\n"
-
-		"    Bitte Aufpassen: Die alten Dateien werden überschrieben.\n\n"
-
-		"    Das Programm wird benutzt um die Rohdaten des MUCEasy™\n"
-		"    aufzubereiten & dabei zu verkleinern.\n\n" BOLD WHT
-
-		"Argumente:\n\n" RESET
-
-		"    -v  gesprächig (Es wird auf der Konsole ausgegeben was gerade passiert)\n"
-		"    -h  zeigt diese Hilfe an\n\n"
-
-		"    -n  wandelt CRLF-Zeilenumbrüche(DOS) in LF Zeilenumbrüche(Unix) um.\n"
-		"        Diese Option wird gebraucht, wenn DOS-Dateien vorliegen. Es ist\n"
-		"        eine gute Idee es allgemein mitzuübergeben.\n\n"
-
-		"    -c  sorgt dafür das in der Ausgabedatei mehrere Semikolons (;) sind\n"
-		"        um eine bessere Ansicht in Office Programmen zu haben wie bspw.\n"
-		"        Libreoffice. (Sinnvoll, falls man mit den Daten direkt arbeiten\n"
-		"        will, statt sie weiterverarbeiten zu lassen.\n\n");
-
-	}
-	return printed;
+list** p_argv(int argc, char** argv,int opt){
+    unsigned short int valid_arguments=0;
+    for (int i=1;i<argc;i++){ //check if input isn't an option
+        if (argv[i][0]!='-') valid_arguments++;
+    }
+    if(valid_arguments==0){
+        fprintf(stderr,"No files selected!\n");
+        exit(1);
+    }
+    //check the arguments
+    list** argdir=(list**)calloc(sizeof(list*),valid_arguments);     //argv with dirs
+    //aka: list* argdir[valid_arguments]
+    int k=0;
+    for (int i=1;i<argc;i++){ //go through argv
+        if (argv[i][0]=='-') continue;
+        else if(isdir(argv[i])) {
+            if(opt & 16) {
+                argdir[k++]=dirs(argv[i],true,ENDPATTERN);
+                if(!argdir[k]) k--; // -> Ensures that NULL is the end of the list
+            } else {
+                fprintf(stderr,"'%s' is a directory.\n", argv[i]);
+            }
+        } else {
+            argdir[k++]=addlast(new_list(argv[i]),NULL);
+        }
+    }
+    return argdir;
 }

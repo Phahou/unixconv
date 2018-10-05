@@ -20,7 +20,6 @@ int rmwinCRLF(char* filename,unsigned short int* lineno_, unsigned short int* Ma
 	while(1){
 		c=fgetc(fp);
 		if ( (c==EOF)||(lineno>=28000) ){
-			
 			fclose(tmp);
 			fclose(fp);
 			break;
