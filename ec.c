@@ -47,11 +47,18 @@ void del_ec(ec* ecp){
 /* epoch2human for time convertion */
 void epoch2human(ec *self){
 	time_t now = atoi(self->time);
-	struct tm	ts;
+	//printf("%s ->",self->time);
+	struct tm ts;
 	ts = *localtime(&now);
 	strftime(self->time_readable,
 			sizeof(self->time_readable),
-			"%Y-%m-%d %H:%M:%S %Z", &ts);
+          #ifdef __unix__
+            "%Y-%m-%d %H:%M:%S", &ts);
+          #endif // __unix__
+          #ifdef __WIN32
+            "%Y-%m-%d %H:%M:%S", &ts);
+          #endif // __WIN32
+    //printf(" %s\n", self->time_readable);
 }
 
 void setid(ec* self, int id){

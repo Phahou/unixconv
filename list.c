@@ -1,8 +1,17 @@
-
-#define GRN	 "\x1B[32m"
+#ifdef __unix__
+#define GRN	 "\x1B[32m" //colors for the terminal
 #define WHT	 "\x1B[37m"
 #define RESET "\x1B[0m"
 #define BOLD	"\x1B[1m"
+#endif // __unix__
+
+#ifdef __WIN32
+#define GRN	 "\x1B[32m" //colors for the terminal
+#define WHT	 "\x1B[37m"
+#define RESET "\x1B[0m"
+#define BOLD	"\x1B[1m"
+#endif // __WIN32
+
 #define DEF_FILENAME "Meter_"
 
 #include <string.h>

@@ -1,7 +1,18 @@
 /* idsort.c: Sorting files bc BUS Systems aren't perfect */
 
 #include"Tmsort.c"
-void* msort(void* th_);
+
+#ifdef __WIN32
+#include<windows.h>
+#endif // __WIN32
+
+#ifdef __unix__
+void*
+#endif // __unix__
+#ifdef __WIN32
+DWORD WINAPI
+#endif // __WIN32
+ msort(void* th_);
 
 int idsort(
 char* filename, int opt,
@@ -13,36 +24,54 @@ unsigned short int* highest ){ //id_nums: number of IDs
 	FILE* tmp[INSTALLED_IDS];
 
 	if(opt & 8) printf(BOLD WHT "Generating tmp files...\n" RESET);
-
 	//initializing tmp files
 	for(int i=0;i<INSTALLED_IDS;i++){
 		tmp[i]= tmpfile();
 	}
-
 	fpos_t firstline;
 	ln_0->skipln(ln_0); //skip 1 lines
 	fgetpos(ln_0->fp,&firstline);
 
 	char* line=(char*)calloc(*highest,sizeof(char));
+
 	//sort ids in specific files
-
 	if(opt & 8) printf("...... Sorting <%s>",filename);
-
-	pthread_t t_id[INSTALLED_IDS];
-	//Create threads
-	Tmst* threads[INSTALLED_IDS];
+	#ifdef __WIN32
+	DWORD t_id[INSTALLED_IDS];          //windows thread id type
+	HANDLE t_id_handle[INSTALLED_IDS];  //
+	#endif // __WIN32
+	#ifdef __unix__
+	pthread_t t_id[INSTALLED_IDS];  //unix thread id type
+	#endif // __unix__
+	Tmst* threads[INSTALLED_IDS]; //data passed into threads
 	for(int i=0;i<INSTALLED_IDS;i++){
+        //get data for threads
 		threads[i] = new_Threadedmsort_argv_t( lineno_,highest, filename, tmp[i],i,&firstline);
-		pthread_create(&t_id[i],NULL ,msort, threads[i]);
+
+        //create threads
+        #ifdef __WIN32
+            t_id_handle[i]=CreateThread(NULL,262144,&msort,threads[i],0,&t_id[i]); //262144 bytes for stack alloc ~> 1/4MB
+        #endif // __WIN32
+        #ifdef __unix__
+            pthread_create(&t_id[i],NULL ,msort, threads[i]);
+		#endif // __unix__
 	}
 
+	#ifdef __WIN32
+        WaitForMultipleObjects(INSTALLED_IDS,t_id_handle,TRUE,INFINITE);
+    #endif // __WIN32
 	//join threads
 	for(int i=0;i<INSTALLED_IDS;i++){
-		pthread_join(t_id[i], NULL);
+        #ifdef __WIN32
+            CloseHandle(t_id_handle[i]);
+        #endif // __WIN32
+        #ifdef __unix__
+            pthread_join(t_id[i], NULL);
+        #endif // __unix__
+
+        //both (free thread_data)
 		del_Threadedmsort_argv_t(threads[i]);// (TODO?)
 	}
-
-
 	//merging ID files
 	//cp first line
 	line=(char*)realloc(line,sizeof(char)*(lineno_[0]+2));
@@ -109,8 +138,14 @@ unsigned short int* highest ){ //id_nums: number of IDs
 	if(opt & 8) printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
 	return 0;
 }
+#ifdef __unix__
+void*
+#endif // __unix__
+#ifdef __WIN32
+DWORD WINAPI
+#endif // __WIN32
 
-void* msort(void* th_){
+ msort(void* th_){
 	Tmst* th=(Tmst*)th_;
 	char* ch=NULL;
 	unsigned short int lineno=1;
@@ -143,5 +178,10 @@ void* msort(void* th_){
 	} while(ch);
 
 	fflush(th->ln_0->ecp->tmp);
+	#ifdef __unix__
 	pthread_exit(0);
+	#endif // __unix__
+	#ifdef __WIN32
+	return 0;
+	#endif // __WIN32
 }

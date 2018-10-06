@@ -14,13 +14,21 @@
  * remove magic numbers
  */
 
+#ifdef __WIN32
+#include<windows.h>
+#include<shlwapi.h>
+#endif // __WIN32
+
+#ifdef __unix__
+#include<sys/stat.h>/* needed for recognizing if input is a dir */
+#include<pthread.h> /* for multithreading in idsort()			*/
+#endif // __unix__
+
 /* 1. Includes */
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
 #include<stdbool.h>
-#include<sys/stat.h>/* needed for recognizing if input is a dir */
-#include<pthread.h> /* for multithreading in idsort()			*/
 
 /* Own Includes: */
 #include"line.c"	/* data-structures holding important infos	*/
@@ -54,6 +62,7 @@ int main(int argc,char** argv){
     for(int i=0;i<inputed_files;i++) {
 		//check if it is already converted 1 = no 0 = yes
         bool triedagain=false;
+        bool sthwrong=false;
         list* curr_pos=files[i];
         while(curr_pos){
             FILE* fp=fopen(curr_pos->str,"r");
@@ -61,7 +70,7 @@ int main(int argc,char** argv){
             fclose(fp);
             switch (not_converted) {
                 case 0:
-                    /*do nothing because it is already converted*/
+                    //do nothing because it is already converted
                     break;
                 case 1:
                     if(opt & 2) rmwinCRLF(curr_pos->str, lineno_, &MaxCharsLine); //converting windows CRLF into unix LF
@@ -69,19 +78,22 @@ int main(int argc,char** argv){
                     if ( (reducedata(curr_pos->str, opt)==-1)&&(!triedagain) ){
                         i--; //try again (error while opening stuff)
                         triedagain=true;
-                        /*break out of the loop and try again (same head in list )*/
+                        //break out of the loop and try again (same head in list )
                         goto TRYAGAIN;
                     }
-                    /* break bc if it sucessfully reducesdata it will go on without the goto */
+                    // break bc if it sucessfully reducesdata it will go on without the goto
                     break;
                 case 2:
                     fprintf(stderr, BOLD WHT "(Skip)" RESET "Something seems wrong with this file: %s\n",(char*)curr_pos->str);
+                    sthwrong=true;
                     break;
             }
             curr_pos=curr_pos->next;
         }
         TRYAGAIN: ;
-
+        if((!triedagain)&&(!sthwrong)){
+            if(files[i]) del_complete_list(files[i]);
+        }
     }
     if (fopen("tmp0.csv","r")) {
         if(opt & 8) printf("Cleaning up tmp0.csv\n");
@@ -147,7 +159,7 @@ int reducedata(const char* filename, int opt){
 			lp->ecp->value=strtoul(values,NULL,10);
 			free(values);
 			fprintf(lp->ecp->tmp,"%lu;",lp->ecp->value);
-		
+
 //check if fp is on the right pos
 			fgetc(lp->fp); //skip "
 			fgetc(lp->fp); //skip ;
@@ -170,7 +182,7 @@ int reducedata(const char* filename, int opt){
 			}
 
 			fprintf(lp->ecp->tmp,"%lu",lp->diff);
-			
+
 			if( (lp->diff != 0) &&
 				(lp->diff != 1) ) fprintf(lp->ecp->tmp,";%lu",lp->diff);
 
@@ -183,7 +195,13 @@ int reducedata(const char* filename, int opt){
 	fclose(lp->ecp->tmp);
 	fclose(lp->fp);
 	del_ln(lp);
+	#ifdef __unix__
 	rename("file.csv",filename);
+	#endif // __unix__
+	#ifdef __WIN32
+	remove(filename);
+	MoveFile("file.csv", filename);
+	#endif // __WIN32
 	remove("tmp0.csv");
 	printf(BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
 	return 0;
@@ -256,7 +274,7 @@ list** p_argv(int argc, char** argv,int opt){
         else if(isdir(argv[i])) {
             if(opt & 16) {
                 argdir[k++]=dirs(argv[i],true,ENDPATTERN);
-                if(!argdir[k]) k--; // -> Ensures that NULL is the end of the list
+                if(!argdir[k-1]) k--; // -> Ensures that NULL is the end of the list
             } else {
                 fprintf(stderr,"'%s' is a directory.\n", argv[i]);
             }
