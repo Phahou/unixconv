@@ -41,10 +41,11 @@
 /* Removing the magic numbers */
 #define TIP_INPUT_LENGTH 30			//max length of the standard device name
 #define CUSTOMID_LENGTH 30			//max length of a custom name for a device
-#define CONVERTED_TIME_LENGTH 30	//max length of the converted time string
+#define CONVERTED_TIME_LENGTH 50	//max length of the converted time string
 #define EPOCH_TIME_LENGTH 14		//The stringlength of the Epoch-input-time usually 14
-
+#define ENDPATTERN ".csv"           //File ending of the requested files usually ".csv"
 /* Colors yay thanks to stackoverflow.com */
+//TODO: needs porting to windows and should be removed from other source files
 #define RED   "\x1B[31m"
 #define GRN   "\x1B[32m"
 #define BLU   "\x1B[34m"
