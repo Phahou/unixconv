@@ -55,6 +55,7 @@ int main(int argc,char** argv){
     int opt=p_options(argc,argv);
     list** files=p_argv(argc,argv,opt);
     unsigned short int MaxCharsLine=0, inputed_files=0;
+    //TODO: make this a buffer or dynamic but then it would decrease performance :P
     unsigned short int lineno_[MAX_LINE_NUMBERS_PER_DEVICE*INSTALLED_IDS]= { 0 };
 
     for (int i=1;i<argc;i++) if (argv[i][0]!='-') inputed_files++;
@@ -62,7 +63,6 @@ int main(int argc,char** argv){
     for(int i=0;i<inputed_files;i++) {
 		//check if it is already converted 1 = no 0 = yes
         bool triedagain=false;
-        bool sthwrong=false;
         list* curr_pos=files[i];
         while(curr_pos){
             FILE* fp=fopen(curr_pos->str,"r");
@@ -85,16 +85,14 @@ int main(int argc,char** argv){
                     break;
                 case 2:
                     fprintf(stderr, BOLD WHT "(Skip)" RESET "Something seems wrong with this file: %s\n",(char*)curr_pos->str);
-                    sthwrong=true;
                     break;
             }
             curr_pos=curr_pos->next;
         }
         TRYAGAIN: ;
-        if((!triedagain)&&(!sthwrong)){
-            if(files[i]) del_complete_list(files[i]);
-        }
+        if(!triedagain) del_complete_list(files[i]);
     }
+    free(files); //free the array we used in p_argv;
     if (fopen("tmp0.csv","r")) {
         if(opt & 8) printf("Cleaning up tmp0.csv\n");
         remove("tmp0.csv");
@@ -266,6 +264,7 @@ list** p_argv(int argc, char** argv,int opt){
         exit(1);
     }
     //check the arguments
+    printf("valid: %d",valid_arguments);
     list** argdir=(list**)calloc(sizeof(list*),valid_arguments);     //argv with dirs
     //aka: list* argdir[valid_arguments]
     int k=0;
@@ -279,7 +278,7 @@ list** p_argv(int argc, char** argv,int opt){
                 fprintf(stderr,"'%s' is a directory.\n", argv[i]);
             }
         } else {
-            argdir[k++]=addlast(new_list(argv[i]),NULL);
+            argdir[k++]=addlast(new_list(argv[i],true),NULL);
         }
     }
     return argdir;

@@ -144,7 +144,7 @@ list* checkdirs( char* path, list* files, char* pattern){
                 const char* file_format=&(DIRENTRY[s_dname-4]);
                 if (strcmp(pattern,file_format)==0){
                     if(strstr(DIRENTRY,DEF_FILENAME)){
-                        curr_pos_list=addlast(new_list(path_ptr),curr_pos_list);
+                        curr_pos_list=addlast(new_list(path_ptr,false),curr_pos_list);
                     } else {
                         free(path_ptr);
                     }

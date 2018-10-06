@@ -27,7 +27,7 @@ typedef struct list_t{
 } list;
 
 /* list */
-list* new_list(char* data);
+list* new_list(char* data,bool isstatic);
 list* addlast(list* new_elem, list* last_elem);
 void del_list(list* obj);
 void del_complete_list(list* elem);
@@ -38,12 +38,17 @@ void swap(list *a, list *b);
 void bubbleSort(list *start);
 
 /* list functions */
-list* new_list(char* data){ //O(1)
+list* new_list(char* data,bool isstatic){ //O(1)
 	if(!data) {
 		return NULL;
 	}
 	list* obj=(list*)malloc(sizeof(list));
-	obj->str=data;
+    if(isstatic){
+        obj->str=(char*)calloc(sizeof(char),strlen(data)+1);
+        strcpy(obj->str,data);
+    } else {
+        obj->str=data;
+    }
 	obj->next=NULL;
 	return obj;
 }

@@ -45,6 +45,7 @@
 #define EPOCH_TIME_LENGTH 14		//The stringlength of the Epoch-input-time usually 14
 #define ENDPATTERN ".csv"           //File ending of the requested files usually ".csv"
 /* Colors yay thanks to stackoverflow.com */
+//TODO: needs porting to windows and should be removed from other source files
 #define RED   "\x1B[31m"
 #define GRN   "\x1B[32m"
 #define BLU   "\x1B[34m"
