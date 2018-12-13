@@ -1,4 +1,4 @@
-/* line.c */
+/* line.c -> data-structures holding important infos */
 
 /* Includes */
 #include <stdio.h>
@@ -37,21 +37,23 @@ ln* new_ln(ec* energycounter){
 }
 
 void del_ln(ln* obj){
-	if(obj->ecp){
-		del_ec(obj->ecp);
-	}
-	if(obj){
-	free(obj);
+	if(obj->ecp)	del_ec(obj->ecp);
+	if(obj)		free(obj);
+}
+void skipln(FILE* fp){
+	char ch='0';
+	while(ch!='\n'){ //skip line
+		ch=fgetc(fp);
+		if(ch==EOF)	break;
 	}
 }
+
 
 void skipline(ln *self){
 	char ch='0';
 	while(ch!='\n'){ //skip line
 		ch=fgetc(self->fp);
-		if(ch==EOF){
-			break;
-		}
+		if(ch==EOF)	break;
 	}
 }
 
@@ -69,8 +71,8 @@ int getlinelength(ln *self){
 //newstuff
 char* rmdoublequotes_rec(unsigned int len,char* str){
 	if(str[len-1]=='"'){
-	str[len-1]='\0';
-	rmdoublequotes_rec(len-1,str);
+		str[len-1]='\0';
+		rmdoublequotes_rec(len-1,str);
 	}
 	if(str[0]=='"') return rmdoublequotes_rec(len,++str); //lol this works
 	else return str;
@@ -123,7 +125,6 @@ void _getline(ln *self){
 }
 //newstuff
 
-
 int calcdiff(int row_a, ln* self){
 	fpos_t row_below,fp_reset;
 	fgetpos(self->fp, &fp_reset);
@@ -145,7 +146,6 @@ int calcdiff(int row_a, ln* self){
 		}
 	}
 	fgetc(self->fp);
-
 	fgetpos(self->fp,&row_below);
 
 	//Copying Energy Values to string
@@ -156,9 +156,7 @@ int calcdiff(int row_a, ln* self){
 	}
 	char* energy_value=(char*)calloc(sizeof(char),i+1);
 	fsetpos(self->fp,&row_below);
-	for(unsigned long j=0;j<=i;j++){
-		energy_value[j]=fgetc(self->fp);
-	}
+	for(unsigned long j=0;j<=i;j++)	energy_value[j]=fgetc(self->fp);
 
 	//atoi row_below
 	unsigned long row_b=strtoul(energy_value,NULL,10);

@@ -8,7 +8,8 @@ int rmwinCRLF(char* filename,unsigned short int* lineno_, unsigned short int* Ma
 	unsigned short int lineno=0;
 	unsigned short int c_in_line=0; //characters in line
 	FILE *fp=fopen(filename,"r");
-	//handling openingfileerror from mentioned in config.c and idsort.c
+
+//handling openingfileerror from mentioned in config.c and idsort.c
 	if (!fp){
 		fprintf(stderr,"%s:lal ",filename);
 		perror("");

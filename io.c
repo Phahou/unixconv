@@ -1,14 +1,5 @@
 /* io.c for I/O Operations. Is at the same time the "main" compiling file */
 
-/* ToC
- * 1. Includes
- * -> POSIX libs
- * -> Own Includes (with OO Concepts)
- * 2. function definitions
- * 3. main function
- * 4. Helper functions
- */
-
 /*TODO:
  * change the reading to read one line and use it in the whole loop instead of moving the pointer always forward
  * remove magic numbers
@@ -21,7 +12,6 @@
 
 #ifdef __unix__
 #include<sys/stat.h>/* needed for recognizing if input is a dir */
-#include<pthread.h> /* for multithreading in idsort()			*/
 #endif // __unix__
 
 /* 1. Includes */
@@ -30,33 +20,41 @@
 #include<stdlib.h>
 #include<stdbool.h>
 
-/* Own Includes: */
-#include"line.c"	/* data-structures holding important infos	*/
-#include"options.c" /* for setting eg -r for only reducing		*/
-#include"config.c"	/* Custom Config for defining ID Names etc. */
-#include"idsort.c"	/* for sorting IDs in the right order		*/
-					/* ->after ID1 is ID2 in the next line		*/
-					/*	 and so on								*/
-#include"windows.c"	/* converts windows CRLF into unix LF		*/
-#include"dirs.c"	/* for checking folders recursively			*/
+#include"options.c" 	// Setting eg -c for added semicolons
+#include"idsort.c"	// Sorting IDs in the right order
+#include"windows.c"	// Converting windows CRLF into unix LF
+#include"dirs.c"	// Checking folders recursively
 
 /* 2. function definitions */
 int idhasntchanged(char* id);
-int reducedata(const char* filename, int opt);
+int reducedata(const char* filename, int opt, struct cfg_t* cfg);
 int isequalcheck(ln* lpr, fpos_t *pos);
 int fileinit(ln* lpr, int opt);
 void reachedEOF(ln* lpr, int status, int opt);
 void printfirstline(ln* lpr);
 bool printhelp(int opt, int argc);
 list** p_argv(int argc,char** argv,int opt);
+int unixconv_main(int argc,char** argv, int _opt, bool isqt);
 
 /* 3. main function */
 int main(int argc,char** argv){
-    int opt=p_options(argc,argv);
+	int _opt=0;
+	bool isqt=false;
+	int status=unixconv_main(argc,argv,_opt,isqt);
+	return status;
+}
+
+int unixconv_main(int argc,char** argv, int _opt, bool isqt){
+    int opt=0;
+    if (isqt) opt=_opt;     //if executed in a gui isqt is true
+    else    opt=p_options(argc,argv);
+
+    struct cfg_t* cfg=readcfg();    //Read the config file
+    
     list** files=p_argv(argc,argv,opt);
     unsigned short int MaxCharsLine=0, inputed_files=0;
     //TODO: make this a buffer or dynamic but then it would decrease performance :P
-    unsigned short int lineno_[MAX_LINE_NUMBERS_PER_DEVICE*INSTALLED_IDS]= { 0 };
+    unsigned short int lineno_[cfg->dn*cfg->ml];//= { 0 };
 
     for (int i=1;i<argc;i++) if (argv[i][0]!='-') inputed_files++;
 
@@ -65,17 +63,18 @@ int main(int argc,char** argv){
         bool triedagain=false;
         list* curr_pos=files[i];
         while(curr_pos){
-            FILE* fp=fopen(curr_pos->str,"r");
-            int not_converted=alreadyconverted(curr_pos->str, fp, opt);
+            FILE* fp=fopen((char*)curr_pos->str,"r");
+            int not_converted=alreadyconverted((char*)curr_pos->str, fp, opt);
             fclose(fp);
             switch (not_converted) {
                 case 0:
                     //do nothing because it is already converted
                     break;
                 case 1:
-                    if(opt & 2) rmwinCRLF(curr_pos->str, lineno_, &MaxCharsLine); //converting windows CRLF into unix LF
-                    idsort(curr_pos->str, opt, lineno_, &MaxCharsLine); //sort IDs in the right order
-                    if ( (reducedata(curr_pos->str, opt)==-1)&&(!triedagain) ){
+                    //opt & 2 has to be true bc if not lineno is 0
+                    if(opt & 2) rmwinCRLF((char*)curr_pos->str, lineno_, &MaxCharsLine); //converting windows CRLF into unix LF
+                    idsort((char*)curr_pos->str, opt, lineno_, &MaxCharsLine,cfg); //sort IDs in the right order
+                    if ( (reducedata((char*)curr_pos->str, opt, cfg)==-1)&&(!triedagain) ){
                         i--; //try again (error while opening stuff)
                         triedagain=true;
                         //break out of the loop and try again (same head in list )
@@ -97,7 +96,7 @@ int main(int argc,char** argv){
         if(opt & 8) printf("Cleaning up tmp0.csv\n");
         remove("tmp0.csv");
     }
-	return 0;
+    return 0;
 }
 
 
@@ -105,8 +104,8 @@ int idhasntchanged(char* id){
 	return strncmp(id,"====",4);
 }
 
-int reducedata(const char* filename, int opt){
-	ln* lp =new_ln(new_ec(CID0));	//line-pointer
+int reducedata(const char* filename, int opt, struct cfg_t* cfg){
+	ln* lp =new_ln(new_ec(NULL));	//line-pointer
 	lp->fp=fopen("tmp0.csv","r");
 	if(!lp->fp){		//Error while Opening stuff
 		del_ln(lp);
@@ -123,7 +122,7 @@ int reducedata(const char* filename, int opt){
 	lp->diff=0;
 	int status;
 	if(opt & 8) printf("Reducing <%s>\n",filename);
-	for(int done_ids=0;done_ids<=INSTALLED_IDS;done_ids++){
+	for(int done_ids=0;done_ids<=cfg->dn;done_ids++){
 		while(1){
 			status=isequalcheck(lp, &pos);
 			if(status==-1) break;
@@ -138,8 +137,8 @@ int reducedata(const char* filename, int opt){
 			fgets(lp->ecp->id,21,lp->fp);	//id
 
 //compare IDs and print them in tmp file
-			lp->ecp->printID(lp->ecp, opt & 1, done_ids-1);
-			if(opt & 8) lp->ecp->setID(lp->ecp,done_ids-1);
+			if(opt & 8) lp->ecp->setID(lp->ecp,cfg->cid[done_ids-1]);
+                        lp->ecp->printID(lp->ecp, opt & 1, done_ids-1);
 			fprintf(lp->ecp->tmp,"%c",fgetc(lp->fp));	//Copy Values
 
 			fgetc(lp->fp);	//Without ""
@@ -151,9 +150,7 @@ int reducedata(const char* filename, int opt){
 
 //data conversion -> get value & print value
 			char* values=(char*)calloc(sizeof(char),i);
-			for(int j=0;j<i;j++){
-				values[j]=fgetc(lp->fp);
-			}
+			for(int j=0;j<i;j++) values[j]=fgetc(lp->fp);
 			lp->ecp->value=strtoul(values,NULL,10);
 			free(values);
 			fprintf(lp->ecp->tmp,"%lu;",lp->ecp->value);
@@ -198,7 +195,7 @@ int reducedata(const char* filename, int opt){
 	#endif // __unix__
 	#ifdef __WIN32
 	remove(filename);
-	MoveFile("file.csv", filename);
+        MoveFileA("file.csv", filename);
 	#endif // __WIN32
 	remove("tmp0.csv");
 	printf(BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
@@ -239,7 +236,7 @@ int fileinit(ln* lpr, int opt){
 
 void reachedEOF(ln* lpr, int status, int opt){
 	if(opt & 8){
-		printf("Reached End of Input for <%s>\n",lpr->ecp->CustomID);
+		printf("Reached End of Input for <%s>\n",lpr->ecp->cid);
 	}
 	//printing a 0 for diff bc we have only 1 value
 	if(status==-1) fprintf(lpr->ecp->tmp,"0\n");
