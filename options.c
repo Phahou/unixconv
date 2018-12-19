@@ -47,7 +47,7 @@ int options(int argc,char** argv){
 	}
 	return opt;
 }
-
+//TODO: remove magic numbers
 int alreadyconverted(const char* filename,FILE *fp, int opt){
 	fpos_t pos;
 	if(fp)		fgetpos(fp,&pos);

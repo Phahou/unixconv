@@ -1,0 +1,20 @@
+# Finished:
+ [x] dirs.c -> remove ifdefs maybe?
+ [x] list.c
+ [x] Tmsort.c
+
+# Unfinished:
+ [ ] check if I can delete most the functions connected with reducedata()
+	 bc my refactoring in idsort.c-> msort kind of made it obsolete lol
+ [ ] windows.c
+ [x] idsort.c   -> remove ifdefs in the file with #defines
+ [ ] ec.c       -> remove magic numbers and static alloc 
+ [ ] tabs.c     -> debug
+
+ [ ] line.c     -> refactor
+ [ ] options.c  -> look into
+ [ ] io.c       -> refactor reducedata() maybe
+ [ ] config.c   -> idk(?)
+
+## TODO: 
+ [x] remove the unreadable ifdefs and use more #defines
