@@ -11,7 +11,7 @@ typedef struct Thm_t {
     FILE* tmp;                      //tmpfile for a id
     char* line;                     //needs to be initialised
         unsigned int i;             //for iteration
-        const char* filename;     //TODO: needs to be replaced with sth out of list.c
+        const char* filename;       //TODO: needs to be replaced with sth out of list.c
         const char* id;             // ids read from the settings file
 }Tmst;
 

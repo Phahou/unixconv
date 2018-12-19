@@ -10,10 +10,19 @@ typedef unsigned short int USI;
 #ifdef __WIN32
 #include<windows.h>
 #include<shlwapi.h>
+
+#define  rename_file    \
+    remove(filename);   \
+    MoveFileA("file.csv", filename);
+
 #endif // __WIN32
 
 #ifdef __unix__
 #include<sys/stat.h>/* needed for recognizing if input is a dir */
+
+#define rename_file \
+    rename("file.csv",filename);
+
 #endif // __unix__
 
 /* 1. Includes */
@@ -22,7 +31,7 @@ typedef unsigned short int USI;
 #include<stdlib.h>
 #include<stdbool.h>
 
-#include"options.c"     // Setting eg -c for added semicolons
+#include"options.c" // Setting eg -c for added semicolons
 #include"idsort.c"  // Sorting IDs in the right order
 #include"windows.c" // Converting windows CRLF into unix LF
 #include"dirs.c"    // Checking folders recursively
@@ -68,6 +77,7 @@ int unixconv_main(int argc,char** argv, int _opt, bool isqt){
             FILE* fp=fopen((char*)curr_pos->str,"r");
             int not_converted=alreadyconverted((char*)curr_pos->str, fp, opt);
             fclose(fp);
+
             switch (not_converted) {
                 case 0:
                     //do nothing because it is already converted
@@ -76,7 +86,6 @@ int unixconv_main(int argc,char** argv, int _opt, bool isqt){
                     //opt & 2 has to be true bc if not lineno is 0
                     if(opt & 2) rmwinCRLF((char*)curr_pos->str, lineno_, &MaxCharsLine); //converting windows CRLF into unix LF
                     idsort((char*)curr_pos->str, opt, lineno_, &MaxCharsLine,cfg); //sort IDs in the right order
-                    //printf("%s",cfg->id[0]);
                     if ( /*(reducedata((char*)curr_pos->str, opt, cfg)==-1)&&(!triedagain)*/ false ){
                         i--; //try again (error while opening stuff)
                         triedagain=true;
@@ -86,43 +95,29 @@ int unixconv_main(int argc,char** argv, int _opt, bool isqt){
                     // break bc if it sucessfully reducesdata it will go on without the goto
                     break;
                 case 2:
-                    fprintf(stderr, BOLD WHT "(Skip)" RESET "Something seems wrong with this file: %s\n",(char*)curr_pos->str);
+                    fprintf(stderr,
+						BOLD WHT "(Skip)"
+						RESET "Something seems wrong with this file: %s\n",
+						(char*)curr_pos->str);
                     break;
             }
+
             curr_pos=curr_pos->next;
         }
-        TRYAGAIN: ;
+        TRYAGAIN: //skip curr_pos=curr_pos->next;
         if(!triedagain) del_complete_list(files[i]);
     }
     free(lineno_);
     del_cfg(cfg);
 
     free(files); //free the array we used in p_argv;
-    /*if (fopen("tmp0.csv","r")) {
+    /* DEBUG COMMENTED
+    if (fopen("tmp0.csv","r")) {
         if(opt & 8) printf("Cleaning up tmp0.csv\n");
         remove("tmp0.csv");
     }*/
     return 0;
 }
-
-
-int idhasntchanged(char* id){
-    return strncmp(id,"====",4);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int reducedata(const char* filename, int opt, struct cfg_t* cfg){
     ln* lp =new_ln(new_ec(NULL));   //line-pointer
@@ -132,26 +127,15 @@ int reducedata(const char* filename, int opt, struct cfg_t* cfg){
         return -1;
     }
 
-    //okay the file isnt reduced yet...
     if(fileinit(lp,opt)==-1) return -1;
-    //tmp file is open now
-    fpos_t pos;
+
+//tmp file is open now
     fseek(lp->fp,0,SEEK_SET);
     printfirstline(lp);
-
-    lp->diff=0;
-    int status;
-    if(opt & 8) printf("Reducing <%s>\n",filename);
-    for(size_t done_ids=0;done_ids<=cfg->dn;done_ids++){
-        while(1){
-            status=isequalcheck(lp, &pos);
-            if(status==-1) break;
-            else if (status==-2) lp->skipln(lp);
+    if(opt & 8) printf("Calcing <%s>\n",filename);
 
 /*
-getline
 int haltbeisemikolon=1;
-
 loop:
 int haltbeisemikolon=1;
   if(ENDE) goto EXIT;
@@ -162,144 +146,57 @@ int haltbeisemikolon=1;
   string time=gettime();
   semikolons++;
   string values=getvalues();
-  print "time;values"
+  int diff=calc_diff(values1,values2);
+  print "time;values;diff"
 goto loop;
 EXIT:
-
-
-
-
-
 */
 
 //Overview:
 //-> TIME;"ID";"VALUE";R4ND0M_$H!T'\n'
-//Time copying:
-
-            fgets(lp->ecp->time,11,lp->fp);
-            fprintf(lp->ecp->tmp,"%s",lp->ecp->time);
-            fprintf(lp->ecp->tmp,"%c",fgetc(lp->fp) );
-
-
-//Rewriting IDs
-
-            fgets(lp->ecp->id,21,lp->fp);   //id
-
-//compare IDs and print them in tmp file
-            if(opt & 8) lp->ecp->setID(lp->ecp,cfg->cid[done_ids-1]);
-            puts(cfg->cid[done_ids-1]);
-            lp->ecp->printID(lp->ecp, opt & 1, done_ids-1);
-
-
-//
-
-            fprintf(lp->ecp->tmp,"%c",fgetc(lp->fp));   //Copy Values
-            fgetc(lp->fp);  //Without ""
-            fgetpos(lp->fp,&pos);
-            int i=0;
-            char ch='0';
-            for(i=0; ch!='"' && ch!=EOF;i++) ch=fgetc(lp->fp);
-            fsetpos(lp->fp,&pos);
-
 //data conversion -> get value & print value
-            char* values=(char*)calloc(sizeof(char),i);
-            for(int j=0;j<i;j++) values[j]=fgetc(lp->fp);
-            lp->ecp->value=strtoul(values,NULL,10);
-            free(values);
-            fprintf(lp->ecp->tmp,"%lu;",lp->ecp->value);
-
-//check if fp is on the right pos
-            fgetc(lp->fp); //skip "
-            fgetc(lp->fp); //skip ;
-
-//time
-            lp->ecp->convertedTime(lp->ecp);
-            fprintf(lp->ecp->tmp,"\"%s\";",lp->ecp->time_readable); //Print time
+        //just use a strchr lol
 
 //calc_diff
-            int calc_status=lp->calc_diff(lp->ecp->value, lp);
+{
+	int calc_status=lp->calc_diff(lp->ecp->value, lp);
+	switch(calc_status){
+		case -10:/* fall through */
+		case -1: reachedEOF(lp, calc_status, opt);
+		default: break;
+	}
 
-            if(calc_status==-10){
-                reachedEOF(lp, calc_status, opt);
-                break;
-            }
-            if(calc_status==-1){
-                reachedEOF(lp, calc_status, opt);
-                done_ids--;
-                break;
-            }
+    fprintf(lp->ecp->tmp,"%lu",lp->diff);
 
-            fprintf(lp->ecp->tmp,"%lu",lp->diff);
+	switch(lp->diff){
+		case 0: /* fall through */
+		case 1: break;
+		default:fprintf(lp->ecp->tmp,";%lu",lp->diff);
+	}
+	fprintf(lp->ecp->tmp,"\n");
 
-            if( (lp->diff != 0) &&
-                (lp->diff != 1) ) fprintf(lp->ecp->tmp,";%lu",lp->diff);
-
-            fprintf(lp->ecp->tmp,"\n");
 //save line
-            fflush(lp->ecp->tmp);
-            fflush(lp->fp);
-        }
-    }
+    fflush(lp->ecp->tmp);
+	fflush(lp->fp);
+}
+
     fclose(lp->ecp->tmp);
     fclose(lp->fp);
     del_ln(lp);
-    #ifdef __unix__
-    rename("file.csv",filename);
-    #endif // __unix__
-    #ifdef __WIN32
-    remove(filename);
-        MoveFileA("file.csv", filename);
-    #endif // __WIN32
+
+    rename_file; //rename "file.csv" to filename
     remove("tmp0.csv");
+
     printf(BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
     return 0;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* ----------------------------4. Helper functions ---------------------------*/
 
-
-int isequalcheck(ln* lpr, fpos_t *pos){
-    int i=0;
-    lpr->skipln(lpr);
-
-    fgetpos(lpr->fp,pos);
-    char isequal=fgetc(lpr->fp);
-    if(isequal=='='){   //print rest of line e.g. ===ID: A===
-        fsetpos(lpr->fp,pos);
-        i=lpr->getlnlen(lpr);
-        fsetpos(lpr->fp,pos);
-        char* idline=(char*)malloc(sizeof(char)*i);
-        fgets(idline,i,lpr->fp);
-        fprintf(lpr->ecp->tmp,"%s\n",idline);
-        free(idline);
-        return -1;
-    } else if (isequal=='\n') return -2;
-    fsetpos(lpr->fp,pos);
-    return 0;
+int idhasntchanged(char* id){
+    return strncmp(id,"====",4);
 }
+
 
 int fileinit(ln* lpr, int opt){
     if(opt & 8) printf("...... Opening files for conversion\r");
@@ -323,9 +220,9 @@ void reachedEOF(ln* lpr, int status, int opt){
 }
 
 void printfirstline(ln* lpr){
-    fprintf(lpr->ecp->tmp,"\"Epochzeit\";\"Zaehler-IDs\";\"Zaehlerwert\";");
-    fprintf(lpr->ecp->tmp,"\"Normale Zeit\";\"Stromdifferenz zwischen den ");
-    fprintf(lpr->ecp->tmp,"Messungen\";\"Stromdifferenz ohne 0 & 1\"\n");
+    fprintf(lpr->ecp->tmp,
+"\"Epochzeit\";\"Zaehler-IDs\";\"Zaehlerwert\";""\"Normale Zeit\";"
+"\"Stromdifferenz zwischen den Messungen\";\"Stromdifferenz ohne 0 & 1\"\n");
     fflush(lpr->ecp->tmp);
 }
 

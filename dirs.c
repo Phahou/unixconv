@@ -7,20 +7,52 @@
 
 //portablity
 #ifdef __unix__
-	#include <sys/stat.h> //dir recognition
-	#include <dirent.h>
-	#include <unistd.h>
-	#define DIRSEQ "%s/%s"
-	#define DIRLETTER '/'
-	#define DIRENTRY dir->d_name
+#include <sys/stat.h> //dir recognition
+#include <dirent.h>
+#include <unistd.h>
+#define DIRSEQ "%s/%s"
+#define DIRLETTER '/'
+#define DIRENTRY dir->d_name
+
+
+#define create_dir_handles	\
+	DIR *d; 				\
+	struct dirent *dir;
+
+#define dir_opendir \
+	d = opendir(path);
+
+#define reset_dir_handles								\
+	d = opendir(path);									\
+	for(long int j=0;j<i;j++)  dir=readdir(d);
+
+#define close_dir_handles	\
+	closedir(d);
+
 #endif // __unix__
 
 #ifdef __WIN32
-	#include<windows.h>
-	#include<shlwapi.h>
-	#define DIRSEQ "%s\\%s"
-	#define DIRLETTER '\\'
-	#define DIRENTRY dir.cFileName
+#include<windows.h>
+#include<shlwapi.h>
+#define DIRSEQ "%s\\%s"
+#define DIRLETTER '\\'
+#define DIRENTRY dir.cFileName
+
+#define create_dir_handles	\
+	HANDLE d;			  	\
+	WIN32_FIND_DATAA dir;
+
+#define dir_opendir \
+	d = FindFirstFileA(search_path,&dir);
+
+#define reset_dir_handles								\
+	d = FindFirstFileA(search_path,&dir);				\
+	for (long int j=0;j<i;j++)	FindNextFileA(d, &dir);
+
+#define close_dir_handles	\
+		FindClose(d);
+
+
 #endif // __WIN32
 
 
@@ -87,14 +119,8 @@ list* checkdirs_r(char* path,const char* pattern){ //path is a folder
  * @returns a list of files which aren't folders
  */
 list* checkdirs( char* path, list* files,const char* pattern){
-	#ifdef __unix__
-		DIR *d;
-		struct dirent *dir;
-	#endif // __unix__
-	#ifdef __WIN32
-		HANDLE d;
-		WIN32_FIND_DATAA dir;
-	#endif // __WIN32
+
+	create_dir_handles;
 
 	size_t s_path=strlen(path); //needed for malloc in while
 	size_t s_dname=0, s_both=0, s_both_prev=0;
@@ -111,12 +137,7 @@ list* checkdirs( char* path, list* files,const char* pattern){
 	char *path_ptr=(char*)calloc(16,sizeof(char));     //malloc ptr
 	long int i=0;
 
-	#ifdef __unix__
-		d = opendir(path);
-	#endif // __unix__
-	#ifdef __WIN32
-		d = FindFirstFileA(search_path,&dir);
-	#endif // __WIN32
+	dir_opendir;
 
 	list* curr_pos_list=files; //last elem which was added for increased performance
 	
@@ -148,23 +169,10 @@ list* checkdirs( char* path, list* files,const char* pattern){
 			
 		//check subfolders (relative path from startfolder)
 			if(isdir(path_ptr)){
-				#ifdef __unix__
-					closedir(d);
-				#endif //__unix__
+				close_dir_handles;
 			//add new files / update file-list
 				curr_pos_list = checkdirs(path_ptr, curr_pos_list, pattern);
-
-			//reset dir-entry pointer
-				#ifdef __unix__
-					d = opendir(path);
-					for(long int j=0;j<i;j++){  dir=readdir(d); }
-				#endif // __unix__
-
-				#ifdef __WIN32
-					printf("%s\n",search_path);
-					d = FindFirstFileA(search_path,&dir);
-					for (long int j=0;j<i;j++){ FindNextFileA(d, &dir); }
-				#endif // __WIN32
+				reset_dir_handles; 	//reset dir-entry pointer/handles
 			}
 
 		//search for pattern
@@ -183,13 +191,11 @@ list* checkdirs( char* path, list* files,const char* pattern){
 			}
 		}
 	//End of while loop ~> cleaning up d
-	#ifdef __unix__
-		closedir(d);
-	#endif // __unix__
-	#ifdef __WIN32
-		FindClose(d);
-		free(search_path);
-	#endif // __WIN32
+	close_dir_handles;
+
+#ifdef __WIN32
+	free(search_path);
+#endif //__WIN32
 	}
 	free(path_ptr);
 	
