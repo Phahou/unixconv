@@ -6,17 +6,18 @@
 #include "line.c"
 
 typedef struct Thm_t {
-    unsigned short int* lineno_;    //thread safe (Read-only)
     FILE* fp;                       //origin file (read only)
     FILE* tmp;                      //tmpfile for a id
     char* line;                     //needs to be initialised
         unsigned int i;             //for iteration
         const char* filename;       //TODO: needs to be replaced with sth out of list.c
         const char* id;             // ids read from the settings file
+        size_t highest;
+        size_t firstline_len;
 }Tmst;
 
 Tmst* new_Tmsort(
-unsigned short int* lineno_,
+unsigned short int len_1st_line,
 unsigned short int* highest,
 const char* filename,
 FILE *tmp_,
@@ -24,12 +25,13 @@ unsigned int i_,
 const char* id_) {
     Tmst* obj=(Tmst*)calloc(1,sizeof(Tmst));
     obj->line=(char*)calloc(*highest,sizeof(char));
-    obj->lineno_=lineno_;
     obj->fp=fopen(filename,"r");
     obj->tmp=tmp_;
     obj->i=i_;
     obj->id=id_;
     obj->filename=filename;
+    obj->highest=*highest;
+    obj->firstline_len=len_1st_line;
     return obj;
 }
 

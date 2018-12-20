@@ -8,14 +8,17 @@
 
 
 struct tm;
-//TODO: remove static numbers
+
 typedef struct ec_t {
-    FILE *tmp;                                  //temporary filepointer
-    char time[EPOCH_TIME_LENGTH];               //input time
-    char* id;                                   //input ID (TIP...)
-    const char* cid;                            //Custom ID
-    char time_readable[CONVERTED_TIME_LENGTH];  //human readable time (converted)
-    unsigned long value;                        //input value for calcdiff -> move to
+    FILE* tmp;                  //temporary filepointer
+    const char* time;		    //input-time-pointer (for strchr)
+    char* id;                   //input ID (TIP...)
+    const char* cid;            //Custom ID
+
+// 32 is more than enough for the timestring I am using
+    char time_readable[32];		//human readable time (converted) 
+
+    unsigned long value;        //input value for calcdiff -> move to
     /* time_readable */
         void (*convertedTime)(struct ec_t *self);
         void (*printID)(struct ec_t *self, bool c_option_set, int id);
@@ -55,7 +58,6 @@ void setid(ec* self, const char* cid){
 }
 
 void printid_new(ec *self, bool c_option_set, int id){
-    //ID names exchangeable with #define in options.c
     if(c_option_set){ //; wanted
         for (int i=0;i<id;i++){
             fprintf(self->tmp,";;;;;;");

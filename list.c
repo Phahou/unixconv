@@ -1,13 +1,13 @@
 #ifdef __unix__
-#define GRN	"\x1B[32m" //colors for the terminal
-#define WHT	"\x1B[37m"
+#define GRN		"\x1B[32m" //colors for the terminal
+#define WHT		"\x1B[37m"
 #define RESET	"\x1B[0m"
 #define BOLD 	"\x1B[1m"
 #endif // __unix__
 
 #ifdef __WIN32
-#define GRN	"\x1B[32m" //colors for the terminal
-#define WHT	"\x1B[37m"
+#define GRN		"\x1B[32m" //colors for the terminal
+#define WHT		"\x1B[37m"
 #define RESET	"\x1B[0m"
 #define BOLD	"\x1B[1m"
 #endif // __WIN32
@@ -66,6 +66,18 @@ list* addlast(list* new_elem, list* last_elem){ //O(1) with checks if NULL
 	else fprintf(stderr,"List was lost(new_elem==NULL)&(last_elem==NULL)\n");
 	return new_elem;
 }
+
+list* addhead(list* newhead,list* formerhead){
+	if(formerhead){
+		if(newhead){
+			newhead->next=formerhead;
+			return newhead;
+		} else return formerhead;
+	} else if(newhead) return newhead;
+	else fprintf(stderr,"List was lost(newhead==NULL)&(formerhead==NULL)\n");
+	return newhead;
+}
+
 void del_list_last(list* head){ //O(n)
 	while(true){
 		if(head->next)	head=head->next;

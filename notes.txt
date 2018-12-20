@@ -1,20 +1,22 @@
 # Finished:
- [x] dirs.c -> remove ifdefs maybe?
- [x] list.c
- [x] Tmsort.c
+ [x] dirs.c
+ [x] list.c    added addhead() as another useful lib function
+ [x] Tmsort.c  removed lineno_
+ [x] idsort.c  removed lineno_
+ [x] windows.c removed lineno_
+ [x] ec.c      removed static arrays
+ [x] check if I can delete most the functions connected with reducedata()
+     bc my refactoring in idsort.c-> msort kind of made it obsolete lol
+ [x] remove the unreadable ifdefs and use more #defines
+ [x] config.c  removed obsolete #defines
+
 
 # Unfinished:
- [ ] check if I can delete most the functions connected with reducedata()
-	 bc my refactoring in idsort.c-> msort kind of made it obsolete lol
- [ ] windows.c
- [x] idsort.c   -> remove ifdefs in the file with #defines
- [ ] ec.c       -> remove magic numbers and static alloc 
  [ ] tabs.c     -> debug
-
- [ ] line.c     -> refactor
  [ ] options.c  -> look into
- [ ] io.c       -> refactor reducedata() maybe
- [ ] config.c   -> idk(?)
 
-## TODO: 
- [x] remove the unreadable ifdefs and use more #defines
+
+
+## TODO/NEXT: 
+ [ ] line.c    refactored a bit
+ [ ] io.c      -> refactor reducedata()

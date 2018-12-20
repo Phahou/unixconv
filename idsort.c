@@ -37,19 +37,36 @@ void*
 
 FILE* appendFILE(FILE* dest, FILE* src);
 
+
+//Custom Filenames (Getted with a call to loadcfg() )
 int idsort( char* filename, int opt,
-unsigned short int* lineno_, unsigned short int* highest,
-struct cfg_t* cfg){ //Custom Filenames (Getted with a call to loadcfg() )
+unsigned short int* highest, struct cfg_t* cfg){
 //tmp & fp used here
     FILE** tmp=(FILE**)calloc(cfg->dn,sizeof(FILE*));
+    FILE* tmp0=NULL;  //init file for combining the sorts (algo is like merge-sort)
+	size_t len_1st_line=0; //without '\n' char
+
+{//copy first line from filename to tmp0
+    FILE* fp=fopen(filename,"r");
+    tmp0=fopen("tmp0.csv","w");
+    char ch=fgetc(fp);
+	do {
+		fprintf(tmp0,"%c",ch);
+		len_1st_line++;
+	} while((ch=fgetc(fp))!='\n' );
+	fprintf(tmp0,"\n");
+	fclose(fp);
+    if(opt & 8){
+        printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
+        printf("...... Merging tmp files");
+    }
+}//end local scope
 
     if(opt & 8) printf(BOLD WHT "Generating tmp files...\n" RESET);
-    
 //initializing tmp files
     for(size_t i=0;i<cfg->dn;i++) tmp[i]= tmpfile();
 
-    //sort ids in specific files
-    
+//sort ids in specific files
 { // begin local scope "multi-threaded-sort"
 
     if(opt & 8) printf("...... Sorting <%s>",filename);
@@ -57,7 +74,7 @@ struct cfg_t* cfg){ //Custom Filenames (Getted with a call to loadcfg() )
 
     Tmst** threads=(Tmst**)calloc(cfg->dn,sizeof(Tmst*)); //data passed into threads
     for(size_t i=0;i<cfg->dn;i++){
-        threads[i] =new_Tmsort( lineno_,highest, filename, tmp[i],i,cfg->id[i]);
+        threads[i] =new_Tmsort( len_1st_line, highest, filename, tmp[i], i, cfg->id[i]);
         create_thread;
     }
 
@@ -77,31 +94,11 @@ struct cfg_t* cfg){ //Custom Filenames (Getted with a call to loadcfg() )
     free(t_id);
 } //end local scope "multi-threaded-sort"
 
-    FILE* tmp0=NULL;  //init file for combining the sorts (algo is like merge-sort)
-
-//cp first line
-{ //begin local scope "copyfirstline"
-    FILE* fp=fopen(filename,"r");
-    char* line=(char*)calloc( lineno_[0]+2, sizeof(char));
-    fgets(line,lineno_[0]+2,fp);
-
-//closing filename:
-    fclose(fp);
-
-    tmp0=fopen("tmp0.csv","w");
-    fprintf(tmp0,"%s",line);
-    free(line);
-    if(opt & 8){
-        printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
-        printf("...... Merging tmp files");
-    }
-} //end local scope "copyfirstline"
-
 
 //cp each file into tmp0.csv
 // "combine"
     for(size_t i=0;i<cfg->dn;i++){
-        freopen("tmp0.csv","a",tmp0); //maybe this can be deleted
+        //freopen("tmp0.csv","a",tmp0); //maybe this can be deleted
         fprintf(tmp0 ,"====ID:<%s>====\n",cfg->cid[i]);
         appendFILE(tmp0,tmp[i]);
         fclose(tmp[i]);
@@ -129,12 +126,10 @@ DWORD WINAPI
     Tmst* th=(Tmst*)th_;
     char* ch=NULL;
     unsigned short int lineno=1;
-    fseek(th->fp,th->lineno_[0],SEEK_SET);
+    fseek(th->fp,th->firstline_len,SEEK_SET);
 
-    do {// should check why dafuq I have to do th->lineno_[lineno]+2
-		// I think it's bc newline + '\0' but dafuq
-        ch=(char*)fgets(th->line, th->lineno_[lineno]+2, th->fp);
-
+    do {
+        ch=(char*)fgets(th->line, th->highest, th->fp);
 	//remove newlines
 		if(ch){ //no more puzzling around if I should do +1 -1 +2 or so...
 			size_t len=strlen(ch);
@@ -165,7 +160,7 @@ DWORD WINAPI
 		}
 
 	//clear string for next use
-		memset(th->line,0,th->lineno_[lineno]);
+		memset(th->line,0,th->highest-1); //reset the whole line buffer
         lineno++;
     } while(ch);
 

@@ -140,7 +140,7 @@ list* checkdirs( char* path, list* files,const char* pattern){
 	dir_opendir;
 
 	list* curr_pos_list=files; //last elem which was added for increased performance
-	
+
 	if (d) {
 	#ifdef __unix__
 		while ((dir = readdir(d))!= NULL){
@@ -151,7 +151,7 @@ list* checkdirs( char* path, list* files,const char* pattern){
 			i++;
 		//skip dot and dot-dot folders otherwise it would start an infinitive loop
 			if ((strcmp(DIRENTRY,"..")==0)||(strcmp(DIRENTRY,".")==0)) {  continue; }
-			
+
 		//alloc memory while saving unnecessary malloc calls
 		//saves ~ 1 / 3 of malloc calls lol (path_ptr 16 byte init saves maybe 1/20 or so )
 			s_dname=strlen(DIRENTRY);

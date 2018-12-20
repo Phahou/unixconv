@@ -65,8 +65,6 @@ int unixconv_main(int argc,char** argv, int _opt, bool isqt){
     list** files=p_argv(argc,argv,opt);
 
     USI MaxCharsLine=0, inputed_files=0;
-    USI* lineno_=(USI*)calloc(cfg->dn*cfg->ml,sizeof(USI));//= { 0 };
-
     for (int i=1;i<argc;i++) if (argv[i][0]!='-') inputed_files++;
 
     for(int i=0;i<inputed_files;i++) {
@@ -84,8 +82,8 @@ int unixconv_main(int argc,char** argv, int _opt, bool isqt){
                     break;
                 case 1:
                     //opt & 2 has to be true bc if not lineno is 0
-                    if(opt & 2) rmwinCRLF((char*)curr_pos->str, lineno_, &MaxCharsLine); //converting windows CRLF into unix LF
-                    idsort((char*)curr_pos->str, opt, lineno_, &MaxCharsLine,cfg); //sort IDs in the right order
+                    rmwinCRLF_and_fill((char*)curr_pos->str, &MaxCharsLine); //converting windows CRLF into unix LF
+                    idsort((char*)curr_pos->str, opt, &MaxCharsLine,cfg); //sort IDs in the right order
                     if ( /*(reducedata((char*)curr_pos->str, opt, cfg)==-1)&&(!triedagain)*/ false ){
                         i--; //try again (error while opening stuff)
                         triedagain=true;
@@ -96,9 +94,9 @@ int unixconv_main(int argc,char** argv, int _opt, bool isqt){
                     break;
                 case 2:
                     fprintf(stderr,
-						BOLD WHT "(Skip)"
-						RESET "Something seems wrong with this file: %s\n",
-						(char*)curr_pos->str);
+                        BOLD WHT "(Skip)"
+                        RESET "Something seems wrong with this file: %s\n",
+                        (char*)curr_pos->str);
                     break;
             }
 
@@ -107,7 +105,6 @@ int unixconv_main(int argc,char** argv, int _opt, bool isqt){
         TRYAGAIN: //skip curr_pos=curr_pos->next;
         if(!triedagain) del_complete_list(files[i]);
     }
-    free(lineno_);
     del_cfg(cfg);
 
     free(files); //free the array we used in p_argv;
@@ -159,25 +156,25 @@ EXIT:
 
 //calc_diff
 {
-	int calc_status=lp->calc_diff(lp->ecp->value, lp);
-	switch(calc_status){
-		case -10:/* fall through */
-		case -1: reachedEOF(lp, calc_status, opt);
-		default: break;
-	}
+    int calc_status=lp->calc_diff(lp->ecp->value, lp);
+    switch(calc_status){
+        case -10:/* fall through */
+        case -1: reachedEOF(lp, calc_status, opt);
+        default: break;
+    }
 
     fprintf(lp->ecp->tmp,"%lu",lp->diff);
 
-	switch(lp->diff){
-		case 0: /* fall through */
-		case 1: break;
-		default:fprintf(lp->ecp->tmp,";%lu",lp->diff);
-	}
-	fprintf(lp->ecp->tmp,"\n");
+    switch(lp->diff){
+        case 0: /* fall through */
+        case 1: break;
+        default:fprintf(lp->ecp->tmp,";%lu",lp->diff);
+    }
+    fprintf(lp->ecp->tmp,"\n");
 
 //save line
     fflush(lp->ecp->tmp);
-	fflush(lp->fp);
+    fflush(lp->fp);
 }
 
     fclose(lp->ecp->tmp);
@@ -197,7 +194,6 @@ int idhasntchanged(char* id){
     return strncmp(id,"====",4);
 }
 
-
 int fileinit(ln* lpr, int opt){
     if(opt & 8) printf("...... Opening files for conversion\r");
     lpr->ecp->tmp=fopen("file.csv","w+");
@@ -210,10 +206,8 @@ int fileinit(ln* lpr, int opt){
 }
 
 void reachedEOF(ln* lpr, int status, int opt){
-    if(opt & 8){
-        printf("Reached End of Input for <%s>\n",lpr->ecp->cid);
-    }
-    //printing a 0 for diff bc we have only 1 value
+    if(opt & 8)    printf("Reached End of Input for <%s>\n",lpr->ecp->cid);
+//printing a '0' for diff bc we have only 1 value
     if(status==-1) fprintf(lpr->ecp->tmp,"0\n");
     fflush(lpr->ecp->tmp);
     fflush(lpr->fp);
@@ -236,7 +230,6 @@ list** p_argv(int argc, char** argv,int opt){
         exit(1);
     }
     //check the arguments
-    //printf("valid: %d",files_entered);
     list** argdir=(list**)calloc(sizeof(list*),files_entered);     //argv with dirs
     //aka: list* argdir[valid_arguments]
     int k=0;
