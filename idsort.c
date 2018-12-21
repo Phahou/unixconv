@@ -7,7 +7,7 @@
 
 #define alloc_thread          \
     DWORD t_id[cfg->dn];        \
-    HANDLE t_id_handle[cfg->dn];  /* windows thread id type */ 
+    HANDLE t_id_handle[cfg->dn];  /* windows thread id type */
 
 #define create_thread /*262144 bytes for stack alloc ~> 1/4MB */ \
     #define t_id_handle[i]=CreateThread(NULL,262144,&msort,threads[i],0,t_id[i]);
@@ -23,7 +23,7 @@ DWORD WINAPI
 #include<pthread.h> /* for multithreading in idsort() */
 
 #define alloc_thread /*unix thread id type*/ \
-    pthread_t* t_id=(pthread_t*)calloc(cfg->dn,sizeof(pthread_t));  
+    pthread_t* t_id=(pthread_t*)calloc(cfg->dn,sizeof(pthread_t));
 
 #define create_thread \
     pthread_create(&t_id[i],NULL ,msort, threads[i]);
@@ -40,26 +40,22 @@ FILE* appendFILE(FILE* dest, FILE* src);
 
 //Custom Filenames (Getted with a call to loadcfg() )
 int idsort( char* filename, int opt,
-unsigned short int* highest, struct cfg_t* cfg){
+size_t* highest, struct cfg_t* cfg,size_t* offsetcid){
 //tmp & fp used here
     FILE** tmp=(FILE**)calloc(cfg->dn,sizeof(FILE*));
     FILE* tmp0=NULL;  //init file for combining the sorts (algo is like merge-sort)
-	size_t len_1st_line=0; //without '\n' char
+    size_t len_1st_line=0; //without '\n' char
 
 {//copy first line from filename to tmp0
     FILE* fp=fopen(filename,"r");
     tmp0=fopen("tmp0.csv","w");
     char ch=fgetc(fp);
-	do {
-		fprintf(tmp0,"%c",ch);
-		len_1st_line++;
-	} while((ch=fgetc(fp))!='\n' );
-	fprintf(tmp0,"\n");
-	fclose(fp);
-    if(opt & 8){
-        printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
-        printf("...... Merging tmp files");
-    }
+    do {
+        fprintf(tmp0,"%c",ch);
+        len_1st_line++;
+    } while((ch=fgetc(fp))!='\n' );
+    fprintf(tmp0,"\n");
+    fclose(fp);
 }//end local scope
 
     if(opt & 8) printf(BOLD WHT "Generating tmp files...\n" RESET);
@@ -70,11 +66,12 @@ unsigned short int* highest, struct cfg_t* cfg){
 { // begin local scope "multi-threaded-sort"
 
     if(opt & 8) printf("...... Sorting <%s>",filename);
+
     alloc_thread;
 
     Tmst** threads=(Tmst**)calloc(cfg->dn,sizeof(Tmst*)); //data passed into threads
     for(size_t i=0;i<cfg->dn;i++){
-        threads[i] =new_Tmsort( len_1st_line, highest, filename, tmp[i], i, cfg->id[i]);
+        threads[i] =new_Tmsort( len_1st_line, highest, filename, tmp[i], cfg->id[i]);
         create_thread;
     }
 
@@ -94,11 +91,16 @@ unsigned short int* highest, struct cfg_t* cfg){
     free(t_id);
 } //end local scope "multi-threaded-sort"
 
+    if(opt & 8){
+        printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
+        printf("...... Merging tmp files");
+    }
 
 //cp each file into tmp0.csv
-// "combine"
+{// "combine"
     for(size_t i=0;i<cfg->dn;i++){
         //freopen("tmp0.csv","a",tmp0); //maybe this can be deleted
+        offsetcid[i]=ftell(tmp0); //note where the next ID begins
         fprintf(tmp0 ,"====ID:<%s>====\n",cfg->cid[i]);
         appendFILE(tmp0,tmp[i]);
         fclose(tmp[i]);
@@ -106,8 +108,8 @@ unsigned short int* highest, struct cfg_t* cfg){
     //merge end
     fclose(tmp0);
     free(tmp);
-//end "combine"
-
+    if(opt & 8) printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
+}//end "combine"
     return 0;
 }
 
@@ -126,41 +128,43 @@ DWORD WINAPI
     Tmst* th=(Tmst*)th_;
     char* ch=NULL;
     unsigned short int lineno=1;
+    size_t clear_length=th->highest-1; //to save a substraction every loop
     fseek(th->fp,th->firstline_len,SEEK_SET);
 
     do {
         ch=(char*)fgets(th->line, th->highest, th->fp);
-	//remove newlines
-		if(ch){ //no more puzzling around if I should do +1 -1 +2 or so...
-			size_t len=strlen(ch);
-			for(size_t i=0; i<strlen(ch);i++){
-				if(ch[len-i]!='\n') ;
-				else ch[len-i]='\0';
-			}
-		}
+    //remove newlines
+        if(ch){ //no more puzzling around if I should do +1 -1 +2 or so...
+            size_t len=strlen(ch);
+            for(size_t i=0; i<strlen(ch);i++){
+                if(ch[len-i]!='\n') ;
+                else ch[len-i]='\0';
+            }
+        }
 
-	//reduce when I am already at it
+    //reduce when I am already at it
         if(strstr(th->line,th->id)) {
-			char* time=th->line;
-			char* values=strchr(th->line,';'); // -> ;
-			values[0]='\0';
-			values=strchr(&values[1],';'); //now we are on the values
-		//cut the rest of the line
-			{
-			values=&values[1]; //move values one forward
-			char* cut=strchr(values,';'); //set the next ; to '\0'
-			cut[0]='\0';
-			}
-		//remove doublequotes
-			{
-			if(values[0]=='"' && values[1] ) values=&values[1];
-			if(values[strlen(values)-1]=='"') values[strlen(values)-1]='\0';
-			}
-			fprintf(th->tmp,"%s;%s\n",time,values);
-		}
+            char* time=th->line;
+            char* values=strchr(th->line,';'); // -> ;
+            values[0]='\0';
+            values=strchr(&values[1],';'); //now we are on the values
+        //cut the rest of the line
+            {
+            values=&values[1]; //move values one forward
+            char* cut=strchr(values,';'); //set the next ; to '\0'
+            cut[0]='\0';
+            }
+        //remove doublequotes
+            {
+            if(values[0]=='"' && values[1] ) values=&values[1];
+            if(values[strlen(values)-1]=='"') values[strlen(values)-1]='\0';
+            }
+            fprintf(th->tmp,"%s;%s\n",time,values);
+        }
 
-	//clear string for next use
-		memset(th->line,0,th->highest-1); //reset the whole line buffer
+    //clear string for next use
+        //clear_length to save 1 substraction every loop (th->highest-1)
+        memset(th->line,0,clear_length);
         lineno++;
     } while(ch);
 

@@ -4,12 +4,12 @@
 
 #include<stdio.h>
 
-int rmwinCRLF_and_fill(char* filename, USI* Max){
+int rmwinCRLF_and_fill(char* filename, size_t* Max){
 	USI curr_line_num=0; //current line number
 	USI cil=0; //characters in line
 	FILE *fp=fopen(filename,"r");
 
-//handling openingfileerror from mentioned in config.c and idsort.c
+//handling opening-file-error from mentioned in config.c and idsort.c
 	if (!fp){
 		perror("");
 		exit(-1);

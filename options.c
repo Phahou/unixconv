@@ -1,14 +1,13 @@
  /* option.c for Program options bc it is nice to have options
 	* -h for help
 	* -v for verbose
-	* -n CRLF line feeds to LF line feeds
 	* -c append ;;;;; to file for better viewing in a csv software (eg libreoffice)
 	* -r recursive option for folders (looks into folders and checks if there are any files in it)
 	* Options are stored in one int: opt
 	* bitfield: 000r vhnc
+	* -> n is removed and filled with 0
+	* -> c is removed and filled with 0
 	*/
-#define PATTERN "\"Timestamp\""
-#define EPOCH "\"Epochzeit\""
 
 #include "config.c"
 
@@ -32,12 +31,6 @@ int options(int argc,char** argv){
 					case 'h':
 						opt |= 4; //0000 0100
 						break;
-					case 'n':
-						opt |= 2; //0000 0010
-						break;
-					case 'c':
-						opt |= 1; //0000 0001
-						break;
 					default:
 						printf("Invalid Option: %s\n",argv[i]);
 						exit(-1);
@@ -47,24 +40,29 @@ int options(int argc,char** argv){
 	}
 	return opt;
 }
+
 //TODO: remove magic numbers
-int alreadyconverted(const char* filename,FILE *fp, int opt){
+int alreadyconverted(const char* filename,FILE *fp, int opt, struct cfg_t* cfg){
 	fpos_t pos;
-	if(fp)		fgetpos(fp,&pos);
-	char row[12]={ 0 }; //init with all 0
+	if(fp)	fgetpos(fp,&pos);
+	else return -2;
+	char row[12]= { 0 }; //init with all 0
 	fgets(row,12,fp);
-	if(strcmp(PATTERN,row)==0){
+	if(strcmp(cfg->pattern,row)==0){
 		if(opt & 8) printf(BOLD BLU "\"%s\" isn't converted yet\n" RESET,filename);
 		fsetpos(fp,&pos); //reseting fp
 		return 1;
-	} else if(strcmp(EPOCH,row)==0){
+	} else if(strcmp(cfg->epoch,row)==0){
 		printf("%s is already " BOLD GRN "converted" RESET "\n",filename);
 		return 0;
 	}
-	if(opt & 8) printf(
-			"Patterns don't match\n"
-			"Rename PATTERN(%s)in #define in options.c and compile again\n"
-			"Or it could be that a folder was selected...\n", PATTERN);
+	if(opt & 8) {
+		fprintf(stderr,
+		"Patterns don't match!\n"
+		"Rename Epoch=<%s> in cfg.txt to the first word in your input file\n"
+		"row:<%s>\n",
+		cfg->pattern,row);
+	}
 	fsetpos(fp,&pos);
 	return 2; // should normally never get here with the right input files
 }
@@ -78,28 +76,21 @@ bool printhelp(int opt, int argc){
 
 		"Verwendung: unixconv [Argumente] [Datei ..]\n\n"
 
-		"    Bitte Aufpassen: Die alten Dateien werden überschrieben.\n\n"
+		"    Achtung: Die alten Dateien werden überschrieben.\n\n"
 
 		"    Das Programm wird benutzt um die Rohdaten des MUCEasy™\n"
 		"    aufzubereiten & dabei zu verkleinern.\n\n" BOLD WHT
 
 		"Argumente:\n\n" RESET
 
-		"    -v  gesprächig (Es wird auf der Konsole ausgegeben was gerade passiert)\n"
+		"    -v  gesprächig\n\n"
+		
 		"    -h  zeigt diese Hilfe an\n\n"
-
-		"    -n  wandelt CRLF-Zeilenumbrüche(DOS) in LF Zeilenumbrüche(Unix) um.\n"
-		"        Diese Option wird gebraucht, wenn DOS-Dateien vorliegen. Es ist\n"
-		"        eine gute Idee es allgemein mitzuübergeben.\n\n"
-
-		"    -c  sorgt dafür das in der Ausgabedatei mehrere Semikolons (;) sind\n"
-		"        um eine bessere Ansicht in Office Programmen zu haben wie bspw.\n"
-		"        Libreoffice. (Sinnvoll, falls man mit den Daten direkt arbeiten\n"
-		"        will, statt sie weiterverarbeiten zu lassen.\n\n"
-
-		"    -r  überprüft die Eingabe auf Ordner und verarbeitet die Dateien und\n"
-		"        Unterordner darin, welche die in config.c angegebene Endung haben.\n"
-		"        ~> ENDPATTERN\n\n");
+		
+		"    -c  Verschobene Einträge in der Ausgabedatei\n\n"
+		
+		"    -r  überprüft die Eingabe auf Ordner/Unterordner mit der entsprech-\n"
+		"        enden Endung in cfg.txt\n\n");
 	}
 	return printed;
 }

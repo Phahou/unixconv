@@ -11,39 +11,26 @@ struct tm;
 
 typedef struct ec_t {
     FILE* tmp;                  //temporary filepointer
-    const char* time;		    //input-time-pointer (for strchr)
-    char* id;                   //input ID (TIP...)
-    const char* cid;            //Custom ID
-
-// 32 is more than enough for the timestring I am using
-    char time_readable[32];		//human readable time (converted) 
-
-    unsigned long value;        //input value for calcdiff -> move to
-    /* time_readable */
-        void (*convertedTime)(struct ec_t *self);
-        void (*printID)(struct ec_t *self, bool c_option_set, int id);
-        void (*setID)(struct ec_t *self, const char* cid);
+    const char* time;           //input-time-pointer (for strchr)
+    char time_readable[32];     /* human readable time (converted)
+                                 * 32 bytes should be more than enough */
 }ec;
 
 void epoch2human(ec *self);
-void printid_new(ec *self, bool c_option_set, int id);
-void setid(ec* self, const char* cid);
 
-
-ec* new_ec(const char* customid){
+ec* new_ec(void){
     ec* obj = (ec*)calloc(1,sizeof(ec));
-    if(customid)    obj->cid=customid;
-    obj->convertedTime = &epoch2human;
-    obj->printID = &printid_new;
-    obj->setID   = &setid;
     return obj;
 }
 
 void del_ec(ec* ecp){
-    if(ecp) free(ecp);
+    if(ecp) {
+        if(ecp->tmp) fclose(ecp->tmp);
+        free(ecp);
+    }
 }
 
-/* epoch2human for time convertion */
+/* epoch2human for time convertion (not used)*/
 void epoch2human(ec *self){
     time_t now = atoi(self->time);
     struct tm ts;
@@ -51,17 +38,4 @@ void epoch2human(ec *self){
     strftime(self->time_readable,
                 sizeof(self->time_readable),
                 "%Y-%m-%d %H:%M:%S", &ts);
-}
-
-void setid(ec* self, const char* cid){
-    if(cid) self->cid=cid;
-}
-
-void printid_new(ec *self, bool c_option_set, int id){
-    if(c_option_set){ //; wanted
-        for (int i=0;i<id;i++){
-            fprintf(self->tmp,";;;;;;");
-        }
-    }
-    fprintf(self->tmp,"%s",self->cid);
 }

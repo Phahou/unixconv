@@ -1,22 +1,22 @@
 # Finished:
  [x] dirs.c
  [x] list.c    added addhead() as another useful lib function
- [x] Tmsort.c  removed lineno_
- [x] idsort.c  removed lineno_
- [x] windows.c removed lineno_
- [x] ec.c      removed static arrays
- [x] check if I can delete most the functions connected with reducedata()
-     bc my refactoring in idsort.c-> msort kind of made it obsolete lol
- [x] remove the unreadable ifdefs and use more #defines
- [x] config.c  removed obsolete #defines
+ [x] Tmsort.c  
+ [x] idsort.c  implemented reduction
+ [x] windows.c
+ [x] ec.c      removed unused functions / simply stupid design choices
 
+ [x] check if I can delete most the functions connected with reducedata()
+     bc my refactoring in idsort.c-> msort kind of made it obsolete lol -> DONE!
+
+ [x] config.c  removed -n option (not needed anymore)
+ [x] tabs.c    deleted
+ [x] io.c      Completly rewritten reducedata()
 
 # Unfinished:
- [ ] tabs.c     -> debug
- [ ] options.c  -> look into
-
-
+ [ ] options.c removed -c option
 
 ## TODO/NEXT: 
- [ ] line.c    refactored a bit
- [ ] io.c      -> refactor reducedata()
+ [ ] line.c     removed calc_diff as it is in reducedata now
+ [ ] README.txt rework so it looks nicer and stuff
+ [ ] options.c  maybe put opt & cfg together bc it would seem the thing to do

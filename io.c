@@ -25,6 +25,9 @@ typedef unsigned short int USI;
 
 #endif // __unix__
 
+
+
+
 /* 1. Includes */
 #include<stdio.h>
 #include<string.h>
@@ -36,16 +39,49 @@ typedef unsigned short int USI;
 #include"windows.c" // Converting windows CRLF into unix LF
 #include"dirs.c"    // Checking folders recursively
 
+struct device_t {
+    //line based
+    //only holds pointers!
+    char** time;
+    char** value;
+    char** diff;
+};
+
+struct device_t* new_device(size_t sum_of_newlines){
+    struct device_t* obj=(struct device_t*)calloc(1,sizeof(struct device_t));
+    obj->time=(char**) calloc(sum_of_newlines,sizeof(char*));
+    obj->value=(char**)calloc(sum_of_newlines,sizeof(char*));
+    obj->diff=(char**) calloc(sum_of_newlines,sizeof(char*));
+    return obj;
+}
+
+void del_device(struct device_t* device, size_t sum_of_newlines){
+    if(device){
+        if(device->time)    free(device->time);
+        if(device->value)   free(device->value);
+        if(device->diff){
+            for(size_t i=0;i<sum_of_newlines;i++){
+                if(device->diff[i]){
+                    if( ((device->diff[i][0]!='1') || (device->diff[i][0]!='0')) &&
+                     ((device->diff[i][1]!='\0')!=0) ) {
+                        free(device->diff[i]);
+                    }
+                }
+            }
+            free(device->diff);
+        }
+        free(device);
+    }
+}
+
 /* 2. function definitions */
-int idhasntchanged(char* id);
-int reducedata(const char* filename, int opt, struct cfg_t* cfg);
-int isequalcheck(ln* lpr, fpos_t *pos);
-int fileinit(ln* lpr, int opt);
-void reachedEOF(ln* lpr, int status, int opt);
-void printfirstline(ln* lpr);
-bool printhelp(int opt, int argc);
-list** p_argv(int argc,char** argv,int opt);
+int reducedata(const char* filename, int opt, struct cfg_t* cfg, size_t* offsetcid);
+
 int unixconv_main(int argc,char** argv, int _opt, bool isqt);
+
+/* Helpers */
+list** p_argv(int argc,char** argv,int opt);
+
 
 /* 3. main function */
 int main(int argc,char** argv){
@@ -60,11 +96,13 @@ int unixconv_main(int argc,char** argv, int _opt, bool isqt){
     if (isqt) opt=_opt;     //if executed in a gui isqt is true
     else    opt=p_options(argc,argv);
 
-    struct cfg_t* cfg=loadcfg();    //Read the config file
+    struct cfg_t* cfg=loadcfg();    //Load the config file
 
     list** files=p_argv(argc,argv,opt);
 
-    USI MaxCharsLine=0, inputed_files=0;
+    size_t highest=0; //Highest number of chars of all lines (used for allocing)
+    size_t* offsetcid=(size_t*)calloc( cfg->dn , sizeof(size_t) );
+    USI inputed_files=0;
     for (int i=1;i<argc;i++) if (argv[i][0]!='-') inputed_files++;
 
     for(int i=0;i<inputed_files;i++) {
@@ -73,18 +111,20 @@ int unixconv_main(int argc,char** argv, int _opt, bool isqt){
         list* curr_pos=files[i];
         while(curr_pos){
             FILE* fp=fopen((char*)curr_pos->str,"r");
-            int not_converted=alreadyconverted((char*)curr_pos->str, fp, opt);
-            fclose(fp);
+            int not_converted;
+            if (fp) {
+                not_converted=alreadyconverted((char*)curr_pos->str, fp, opt, cfg);
+                fclose(fp);
+            }
 
             switch (not_converted) {
                 case 0:
                     //do nothing because it is already converted
                     break;
                 case 1:
-                    //opt & 2 has to be true bc if not lineno is 0
-                    rmwinCRLF_and_fill((char*)curr_pos->str, &MaxCharsLine); //converting windows CRLF into unix LF
-                    idsort((char*)curr_pos->str, opt, &MaxCharsLine,cfg); //sort IDs in the right order
-                    if ( /*(reducedata((char*)curr_pos->str, opt, cfg)==-1)&&(!triedagain)*/ false ){
+                    rmwinCRLF_and_fill((char*)curr_pos->str, &highest); //converting windows CRLF into unix LF
+                    idsort((char*)curr_pos->str, opt, &highest, cfg, offsetcid); //sort IDs in the right order
+                    if ( (reducedata((char*)curr_pos->str, opt, cfg, offsetcid)==-1)&&(!triedagain) ){
                         i--; //try again (error while opening stuff)
                         triedagain=true;
                         //break out of the loop and try again (same head in list )
@@ -105,9 +145,11 @@ int unixconv_main(int argc,char** argv, int _opt, bool isqt){
         TRYAGAIN: //skip curr_pos=curr_pos->next;
         if(!triedagain) del_complete_list(files[i]);
     }
+{ //clean up
     del_cfg(cfg);
-
+    free(offsetcid);
     free(files); //free the array we used in p_argv;
+}
     /* DEBUG COMMENTED
     if (fopen("tmp0.csv","r")) {
         if(opt & 8) printf("Cleaning up tmp0.csv\n");
@@ -116,109 +158,199 @@ int unixconv_main(int argc,char** argv, int _opt, bool isqt){
     return 0;
 }
 
-int reducedata(const char* filename, int opt, struct cfg_t* cfg){
-    ln* lp =new_ln(new_ec(NULL));   //line-pointer
-    lp->fp=fopen("tmp0.csv","r");
-    if(!lp->fp){        //Error while Opening stuff
-        del_ln(lp);
-        return -1;
-    }
 
-    if(fileinit(lp,opt)==-1) return -1;
-
-//tmp file is open now
-    fseek(lp->fp,0,SEEK_SET);
-    printfirstline(lp);
-    if(opt & 8) printf("Calcing <%s>\n",filename);
-
-/*
-int haltbeisemikolon=1;
-loop:
-int haltbeisemikolon=1;
-  if(ENDE) goto EXIT;
-  if(lineskip){
-    print "skipline";
-    goto loop;
+int reducedata(const char* filename, int opt,
+struct cfg_t* cfg, size_t* offsetcid){ //offsetcid: offset of the devices
+    ln* lp;
+//TODO: rename lp->fp to lp->tmp or better lp->fp_in lp->fp_out
+{ //boilerplate variable inits
+  { // initialize lp (set filepointer) do error handling
+      lp=new_ln(new_ec());   //line-pointer
+      lp->fp=fopen("tmp0.csv","r");
+      if(!lp->fp){        //Error while Opening stuff
+          del_ln(lp);
+          return -1;
+      }
   }
-  string time=gettime();
-  semikolons++;
-  string values=getvalues();
-  int diff=calc_diff(values1,values2);
-  print "time;values;diff"
-goto loop;
-EXIT:
-*/
 
-//Overview:
-//-> TIME;"ID";"VALUE";R4ND0M_$H!T'\n'
-//data conversion -> get value & print value
-        //just use a strchr lol
+  {// initialize output file.
+      if(opt & 8) printf("...... Opening files for conversion\r");
+      lp->ecp->tmp=fopen("file.csv","w+");
+      if(!lp->ecp->tmp){
+          perror("\nError file.csv:");
+          return -1;
+      }
+      if(opt & 8) printf(BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
 
-//calc_diff
-{
-    int calc_status=lp->calc_diff(lp->ecp->value, lp);
-    switch(calc_status){
-        case -10:/* fall through */
-        case -1: reachedEOF(lp, calc_status, opt);
-        default: break;
+  //print first line
+      fprintf(lp->ecp->tmp,"\"Epochzeit\"");
+      for(unsigned short int i=0;i<cfg->dn;i++){
+          fprintf(lp->ecp->tmp,";%s;->DIFF",cfg->cid[i]);
+      }
+  }
+}
+    char* str=NULL; // will be freed later
+{ // read file into str pretty much like a function call
+    FILE* src=lp->fp;
+    fseek(src, 0, SEEK_END);
+    size_t src_size = ftell(src);
+    fseek(src, 0, SEEK_SET);
+    char* string=(char*)calloc(src_size+1,sizeof(char));
+    fread(string, src_size, 1, src);
+    str=string; //"returns" here
+    src=NULL;   //set src to NULL for safety
+}
+    char** device=NULL;
+{ // init device start pointers idk
+    device=(char**)calloc(cfg->dn,sizeof(char*));
+    for(size_t i=0;i<cfg->dn;i++) {
+        device[i]=&str[ offsetcid[i] ];
+        if((i+1)<cfg->dn) str[ offsetcid[i+1]-1 ]='\0'; //cut device strings
+    }
+                                                                                                //DEBUG
+    /*for(size_t i=0;i<cfg->dn;i++) {
+        printf("\ndevice[%ld]:\n%s\n------------------\n",i,device[i]);
+    }*/
+}
+    bool allok=true;
+    size_t* newlines=NULL;
+{ // check if both have the same number of rows
+//get row numbers of each device
+    newlines=(size_t*)calloc(cfg->dn,sizeof(size_t));
+    for(size_t i=0;i<cfg->dn;i++) {
+        char* tmp_ch=NULL;
+        char* ch=device[i];
+        while( (tmp_ch=strchr(ch,'\n')) ){
+            if(tmp_ch[1]) {
+                ch=&tmp_ch[1];
+                newlines[i]=newlines[i]+1;
+            } else break;
+        }
+    }
+//all the same?
+    for(size_t i=1;i<cfg->dn;i++) {
+        if(newlines[i]!=newlines[0]) allok=false;
+        //printf("newlines[%ld]=%ld\n",i,newlines[i]);
     }
 
-    fprintf(lp->ecp->tmp,"%lu",lp->diff);
-
-    switch(lp->diff){
-        case 0: /* fall through */
-        case 1: break;
-        default:fprintf(lp->ecp->tmp,";%lu",lp->diff);
-    }
-    fprintf(lp->ecp->tmp,"\n");
-
-//save line
-    fflush(lp->ecp->tmp);
-    fflush(lp->fp);
 }
 
-    fclose(lp->ecp->tmp);
-    fclose(lp->fp);
+    struct device_t** devs=(struct device_t**)calloc(cfg->dn,sizeof(struct device_t*));
+
+    char* nullvalue=(char*)calloc(2,sizeof(char)); // for later use with devs
+    char* onevalue=(char*)calloc(2,sizeof(char));
+    nullvalue[0]='0';
+    onevalue[0]='1';
+
+{ //calc differences and combine devices into one line
+    if(!allok) {
+        fprintf(stderr,"Exception is not yet implemented sorry!\n");
+        exit(-1);
+    }
+    if(opt & 8) printf("Calcing differences for <%s>\n",filename);
+
+//gen a type of hashmap for the values n stuff it's easier this way (I think)
+
+    for(size_t i=0;i<cfg->dn;i++) {
+        devs[i]=new_device(newlines[i]);
+    }
+
+    { //get diff and fill devs[i] structure
+    unsigned int val1, val2, diff;
+
+    for(size_t i=0;i<cfg->dn;i++) {
+        char* oldrow=strchr(device[i],'\n');
+        char* val, *cut;
+        if(oldrow && oldrow[1]) oldrow=&oldrow[1]; //skip this ==ID:<>== stuff
+        { //get val0 first iteration by hand
+        devs[i]->time[0]=oldrow;
+        cut=strchr(oldrow,';'); //cut time
+        cut[0]='\0';
+        val=&cut[1];        devs[i]->value[0]=val;
+        cut=strchr(val,'\n'); //cut val
+        cut[0]='\0';
+        val1=atoi(val);
+        devs[i]->diff[0]=nullvalue; //as there is nothing before it in this file
+
+        if(cut[1]) oldrow=&cut[1];
+        else break;
+        }
+        for(size_t l=1;l<newlines[i];l++){ // get other vals
+
+            devs[i]->time[l]=oldrow;
+            cut=strchr(oldrow,';'); //cut time
+            cut[0]='\0';
+
+            val=&cut[1];
+            cut=strchr(val,'\n'); //cut val
+            if(cut==0) { //reached the End
+                devs[i]->value[l]=val;
+                devs[i]->diff[l]=nullvalue;
+                break;
+            } cut[0]='\0';
+            val2=atoi(val);         devs[i]->value[l]=val;
+
+            diff=val2-val1;//calc diff: val2 is always bigger than val1
+            { //set diff pointer
+            if(diff==0) devs[i]->diff[l]=nullvalue;
+            else if(diff==1) devs[i]->diff[l]=onevalue;
+            else { //alloc space
+                unsigned int v1=atoi(devs[i]->value[l-1]);
+                unsigned int v2=atoi(devs[i]->value[l]);
+                unsigned int max=(v1>v2)? v1: v2;
+                unsigned int size=(v1==max)?
+                    strlen(devs[i]->value[l-1]): //v1
+                    strlen(devs[i]->value[l]); //v2
+                devs[i]->diff[l]=(char*)calloc(size+1,sizeof(char));
+                sprintf(devs[i]->diff[l],"%u",diff);
+            }
+            }
+            if(cut[1]) oldrow=&cut[1]; //advance row
+            else { //Reached end normally not needed bc l<newlines[i]
+                diff=0; //nothing here so nothing is the diff
+                devs[i]->diff[l++]=nullvalue;
+                break;
+            }
+            val1=val2; //reset val1 for next iteration
+        }
+    }
+    } //end get diff and fill devs[i] structure
+}
+{ //print into output file
+    for(size_t l=0;l<newlines[0];l++){
+        fprintf(lp->ecp->tmp,"\n%s",devs[0]->time[l]);
+        char* log=devs[0]->time[l]; //readablity
+        for(size_t i=0;i<cfg->dn;i++) {
+            char* logged=devs[i]->time[l]; // readablity
+            if ( (atoi(log)-cfg->tol)<=(atoi(logged)) && //x<=y<=z
+                (atoi(logged)<=(atoi(log)+cfg->tol)) ){
+                fprintf(lp->ecp->tmp,";%s;%s",devs[i]->value[l], devs[i]->diff[l]);
+            }
+        }
+    }
+}
+{//clean up
     del_ln(lp);
+    for(size_t i=0;i<cfg->dn;i++) {
+        del_device(devs[i],newlines[i]);
+    }
+    free(newlines);
+    free(devs);
+    free(nullvalue);
+    free(onevalue);
 
-    rename_file; //rename "file.csv" to filename
-    remove("tmp0.csv");
+    free(str);
+    free(device);
 
-    printf(BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
+
+//    rename_file; //rename "file.csv" to filename
+//    remove("tmp0.csv");
+}
+    printf("\r" BOLD WHT "[" GRN "done" WHT "]" RESET " %s\n",filename);
     return 0;
 }
 
 /* ----------------------------4. Helper functions ---------------------------*/
-
-int idhasntchanged(char* id){
-    return strncmp(id,"====",4);
-}
-
-int fileinit(ln* lpr, int opt){
-    if(opt & 8) printf("...... Opening files for conversion\r");
-    lpr->ecp->tmp=fopen("file.csv","w+");
-    if(!lpr->ecp->tmp){
-        perror("\nError file.csv:");
-        return -1;
-    }
-    if(opt & 8) printf(BOLD WHT "[" GRN "done" WHT "]" RESET "\n");
-    return 0;
-}
-
-void reachedEOF(ln* lpr, int status, int opt){
-    if(opt & 8)    printf("Reached End of Input for <%s>\n",lpr->ecp->cid);
-//printing a '0' for diff bc we have only 1 value
-    if(status==-1) fprintf(lpr->ecp->tmp,"0\n");
-    fflush(lpr->ecp->tmp);
-    fflush(lpr->fp);
-}
-
-void printfirstline(ln* lpr){
-    fprintf(lpr->ecp->tmp,
-"\"Epochzeit\";\"Zaehler-IDs\";\"Zaehlerwert\";""\"Normale Zeit\";"
-"\"Stromdifferenz zwischen den Messungen\";\"Stromdifferenz ohne 0 & 1\"\n");
-    fflush(lpr->ecp->tmp);
-}
 
 list** p_argv(int argc, char** argv,int opt){
     unsigned short int files_entered=0;
