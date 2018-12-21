@@ -1,10 +1,5 @@
 /* io.c for I/O Operations. Is at the same time the "main" compiling file */
 
-/*TODO:
- * change the reading to read one line and use it in the whole loop instead of moving the pointer always forward
- * remove magic numbers
- */
-
 typedef unsigned short int USI;
 
 #ifdef __WIN32
@@ -76,7 +71,6 @@ void del_device(struct device_t* device, size_t sum_of_newlines){
 
 /* 2. function definitions */
 int reducedata(const char* filename, int opt, struct cfg_t* cfg, size_t* offsetcid);
-
 int unixconv_main(int argc,char** argv, int _opt, bool isqt);
 
 /* Helpers */
@@ -207,10 +201,6 @@ struct cfg_t* cfg, size_t* offsetcid){ //offsetcid: offset of the devices
         device[i]=&str[ offsetcid[i] ];
         if((i+1)<cfg->dn) str[ offsetcid[i+1]-1 ]='\0'; //cut device strings
     }
-                                                                                                //DEBUG
-    /*for(size_t i=0;i<cfg->dn;i++) {
-        printf("\ndevice[%ld]:\n%s\n------------------\n",i,device[i]);
-    }*/
 }
     bool allok=true;
     size_t* newlines=NULL;
@@ -249,10 +239,8 @@ struct cfg_t* cfg, size_t* offsetcid){ //offsetcid: offset of the devices
     }
     if(opt & 8) printf("Calcing differences for <%s>\n",filename);
 
-//gen a type of hashmap for the values n stuff it's easier this way (I think)
-
-    for(size_t i=0;i<cfg->dn;i++) {
-        devs[i]=new_device(newlines[i]);
+    for(size_t i=0;i<cfg->dn;i++) {     //gen a type of hashmap for the values &
+        devs[i]=new_device(newlines[i]);//stuff it's easier this way (I think)
     }
 
     { //get diff and fill devs[i] structure
@@ -341,8 +329,6 @@ struct cfg_t* cfg, size_t* offsetcid){ //offsetcid: offset of the devices
 
     free(str);
     free(device);
-
-
 //    rename_file; //rename "file.csv" to filename
 //    remove("tmp0.csv");
 }

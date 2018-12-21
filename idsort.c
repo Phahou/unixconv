@@ -6,7 +6,7 @@
 #include<windows.h>
 
 #define alloc_thread          \
-    DWORD t_id[cfg->dn];        \
+    DWORD t_id[cfg->dn];      \
     HANDLE t_id_handle[cfg->dn];  /* windows thread id type */
 
 #define create_thread /*262144 bytes for stack alloc ~> 1/4MB */ \

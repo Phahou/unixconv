@@ -8,10 +8,10 @@
 typedef struct Thm_t {
     FILE* fp;                   //origin file (read only)
     FILE* tmp;                  //tmpfile for a id
-    char* line; 				//needs to be initialised
+    char* line;                 //needs to be initialised
     const char* id;             // ids read from the settings file
-    size_t highest;				//highest size of a line
-    size_t firstline_len;		//sizeof the first line
+    size_t highest;             //highest size of a line
+    size_t firstline_len;       //sizeof the first line
 }Tmst;
 
 Tmst* new_Tmsort(USI len_1st_line, size_t* highest, const char* filename,

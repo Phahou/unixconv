@@ -20,15 +20,15 @@
 #define CFG_PATH "cfg.txt"
 
 
-struct cfg_t{   //Default:
-    size_t ml;  //maximal lines per device  1024
-    size_t dn;  //installed devices         2
-    char** id;  //IDs before
-    char** cid; //Custom IDs after
-    char* pattern; //usually "Timestamp"
-    char* epoch;   //usually "Epochzeit"
-    char* endpattern;
-    int tol; //tolerance
+struct cfg_t{           //Default:
+    size_t ml;          //maximal lines per device  1024
+    size_t dn;          //installed devices         2
+    char** id;          //IDs before
+    char** cid;         //Custom IDs after
+    char* pattern;      //usually "Timestamp"
+    char* epoch;        //usually "Epochzeit"
+    char* endpattern;   //usually .csv
+    int tol;            //tolerance
 };
 
 /*
