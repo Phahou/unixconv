@@ -56,13 +56,12 @@ void del_device(struct device_t* device, size_t sum_of_newlines){
         if(device->value)   free(device->value);
         if(device->diff){
             for(size_t i=0;i<sum_of_newlines;i++){ 
-                switch(device->diff[i]){           
+                switch(device->diff[i][0]){           
                     case '1': /* fall through */ // ignore "1" & "0" strings
                     case '0':                    // bc they are already alloc'd
                         if(device->diff[i][1]=='\0') break;
                         else /* fall through */
                     default: free(device->diff[i]);
-                    }
                 }
             }
             free(device->diff);
